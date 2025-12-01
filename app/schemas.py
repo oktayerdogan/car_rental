@@ -17,7 +17,8 @@ class CarBase(BaseModel):
     brand:str
     model:str
     year:int
-class carCreate(CarBase): #kullanıcıdan alınan bilgiler.pass yazıyor çünkü CarBaseden miras almıştık oradan gelen bilgileri kullanıyoruz
+    price_per_day:int
+class CarCreate(CarBase): #kullanıcıdan alınan bilgiler.pass yazıyor çünkü CarBaseden miras almıştık oradan gelen bilgileri kullanıyoruz
     pass
 class CarResponse(CarBase): #kullanıcıya dönen bilgiler
     id:int

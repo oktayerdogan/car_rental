@@ -20,6 +20,7 @@ class Car(Base):
     model=Column(String,nullable=False)
     year=Column(Integer, nullable=False)
     is_available=Column(Boolean, default=True)
+    price_per_day=Column(Integer, nullable=False)
     
     reservations=relationship("Reservation", back_populates="car") #1 to many(bir araba birden fazla kez kiralanabilir)
     

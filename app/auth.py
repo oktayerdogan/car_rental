@@ -12,6 +12,7 @@ ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+#şifre Hashleme
 def hash_password(password: str):
     truncated_pw = password.encode("utf-8")[:72]
     return pwd_context.hash(truncated_pw)
@@ -48,4 +49,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
 
+    return user
+
+def require_admin(user: User = Depends(get_current_user)):
+    if user.role!="admin":
+        raise HTTPException(status_code=400,detail="Bu işlemi gerçekleştirmek için admin yetkisi gereklidir.")
     return user
