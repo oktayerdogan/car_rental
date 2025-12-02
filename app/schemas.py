@@ -4,13 +4,13 @@ from datetime import date
 #User
 class UserBase(BaseModel):
     email:str
-class userCreate(UserBase): #kullanıcıdan alınan bilgiler.kayıt yaparken sadece email ve password alınıyor.
+class UserCreate(UserBase): #kullanıcıdan alınan bilgiler.kayıt yaparken sadece email ve password alınıyor.
     password:str
 class UserResponse(UserBase): #kullanıcıya dönen bilgiler.kullanınıcıya id email ve role bilgileri dönüyor.
     id:int
     role:str
     class Config:
-        orm_mode=True
+        from_attributes = True
         
 #car
 class CarBase(BaseModel):
@@ -40,4 +40,12 @@ class ReservationResponse(BaseModel):
     end_date:date
     
     class Config:
-        orm_mode=True
+        from_attributes = True
+        
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
