@@ -32,4 +32,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=400, detail="E-mail veya şifre hatalı.")
 
     token = create_access_token({"sub": str(db_user.id)})
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "role": db_user.role,  # Artık rol bilgisini de gönderiyoruz
+        "user_id": db_user.id  # Lazım olur diye ID'yi de gönderelim
+    }
