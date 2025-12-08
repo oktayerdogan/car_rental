@@ -1,33 +1,33 @@
+# app/main.py
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # <--- 1. BU EKLENDİ
-from .database import Base, engine
-from .routers import users, cars, reservations
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware # 👈 BU KRİTİK
+from .routers import users, cars, reservations, auth
+from .database import engine, Base
 
+# Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Car Rental API")
 
-# ---------------------------------------------------------
-# 2. CORS AYARLARI (Frontend ile Bağlantı İzni)
-# ---------------------------------------------------------
-origins = [
-    "http://localhost:3000",      # Frontend'in adresi
-    "http://127.0.0.1:3000",      # Bazen burayı kullanır
-]
+# Resim klasörünü dışarı aç
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# 👇 CORS AYARLARI (EN GENİŞ İZİN)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # Sadece bu adreslere izin ver
+    allow_origins=["*"],  # 🌟 TÜM ADRESLERE İZİN VER (Localhost, 127.0.0.1 vs.)
     allow_credentials=True,
-    allow_methods=["*"],          # GET, POST, DELETE vb. hepsine izin ver
-    allow_headers=["*"],          # Token headerlarına izin ver
+    allow_methods=["*"],  # Tüm metodlara izin ver (GET, POST, DELETE...)
+    allow_headers=["*"],  # Tüm başlıklara izin ver
 )
-# ---------------------------------------------------------
 
+# Router'ları ekle
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(cars.router)
 app.include_router(reservations.router)
 
 @app.get("/")
-def root():
-    return {"message": "Car Rental API is running!"}
+def read_root():
+    return {"message": "Rent A Car API Çalışıyor 🚀"}
