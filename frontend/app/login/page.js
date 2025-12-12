@@ -1,46 +1,85 @@
 // frontend/app/login/page.js
 "use client";
 import { useState } from "react";
-import { TextField, Button, Box, Typography, Container, Paper } from "@mui/material";
+import { TextField, Button, Box, Typography, Container, Paper, Link } from "@mui/material";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import Notification from "../components/Notification"; // 👈 YENİ IMPORT
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [notification, setNotification] = useState({ open: false, message: '', severity: '' }); // 👈 YENİ STATE
   const router = useRouter();
 
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+  
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append("username", email);
-      formData.append("password", password);
+    setNotification({ open: false, message: '', severity: '' }); // Eski bildirimi kapat
 
-      const response = await axios.post("http://127.0.0.1:8000/users/login", formData);
+    try {
+        
+      const payload = new URLSearchParams({ 
+        username: email,
+        password: password
+      }).toString();
+
+      // 👇 DÜZELTME: Rotayı /auth/login olarak güncelliyoruz.
+      const response = await axios.post("http://127.0.0.1:8000/auth/login", payload, {
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded' // Form Data formatı
+          }
+      });
       
       // Token'ı kaydet
       localStorage.setItem("token", response.data.access_token);
-      localStorage.setItem("role", response.data.role);       // Rolü kaydet (admin/user)
-      localStorage.setItem("user_id", response.data.user_id); // ID'yi kayde
-      alert("Giriş Başarılı!");
+      localStorage.setItem("role", response.data.role); 
+      localStorage.setItem("user_id", response.data.user_id); 
       
-      router.push("/");
+      // 👇 ESKİ ALERT YERİNE: Başarılı bildirim
+      setNotification({ open: true, message: "Giriş başarılı! Yönlendiriliyorsunuz...", severity: "success" });
+      
+      // Rolüne göre yönlendir
+      setTimeout(() => {
+        router.push(response.data.role === "admin" ? "/admin" : "/");
+      }, 500);
+
     } catch (error) {
-      alert("Giriş Başarısız! Email veya şifre hatalı.");
+      // 👇 ESKİ ALERT YERİNE: Hata bildirimi
+      console.error("Login Hatası:", error);
+      const errorMessage = error.response?.data?.detail || "Kullanıcı adı veya şifre hatalı.";
+      setNotification({ open: true, message: errorMessage, severity: "error" });
     }
   };
 
   return (
     <Container component="main" maxWidth="xs" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography component="h1" variant="h5">Giriş Yap</Typography>
-        <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
+      <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 3 }}>
+        <Typography component="h1" variant="h5" sx={{ fontWeight: 'bold' }}>Giriş Yap</Typography>
+        <Box component="form" onSubmit={handleLogin} sx={{ mt: 3, width: '100%' }}>
           <TextField margin="normal" required fullWidth label="Email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           <TextField margin="normal" required fullWidth label="Şifre" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>Giriş Yap</Button>
+          
+          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, py: 1.5, bgcolor: '#1E2022', '&:hover': { bgcolor: 'black' } }}>
+            Giriş Yap
+          </Button>
+          
+          <Link href="/register" variant="body2" sx={{ display: 'block', textAlign: 'right' }}>
+            Hesabın yok mu? Kayıt Ol
+          </Link>
         </Box>
       </Paper>
+      
+      {/* 👇 YENİ: NOTIFICATION BİLEŞENİ */}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        handleClose={handleCloseNotification}
+      />
     </Container>
   );
 }

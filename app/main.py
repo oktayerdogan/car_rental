@@ -1,33 +1,42 @@
 # app/main.py
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware # 👈 BU KRİTİK
-from .routers import users, cars, reservations, auth
+from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
+from .routers import users, cars, reservations, auth 
 
-# Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Car Rental API")
 
-# Resim klasörünü dışarı aç
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# CORS Ayarları
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
-# 👇 CORS AYARLARI (EN GENİŞ İZİN)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 🌟 TÜM ADRESLERE İZİN VER (Localhost, 127.0.0.1 vs.)
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Tüm metodlara izin ver (GET, POST, DELETE...)
-    allow_headers=["*"],  # Tüm başlıklara izin ver
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Router'ları ekle
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(cars.router)
-app.include_router(reservations.router)
+# 🚀 Rotaları Sisteme Dahil Etme
+# ---------------------------------------------------------
+
+# 1. Auth için prefix'i BURADAN veriyoruz.
+# Çünkü auth.py dosyasının içinde prefix yok.
+# Sonuç: http://127.0.0.1:8000/auth/login çalışacak.
+app.include_router(auth.router, prefix="/auth") 
+
+# 2. Diğerleri için prefix vermiyoruz.
+# Çünkü onların kendi dosyalarında (cars.py, users.py) zaten prefix="/cars" yazıyor.
+# Buradan da verirsek "/cars/cars/" olur ve bozulur.
+app.include_router(users.router)      
+app.include_router(cars.router)       
+app.include_router(reservations.router) 
 
 @app.get("/")
 def read_root():
-    return {"message": "Rent A Car API Çalışıyor 🚀"}
+    return {"message": "Rent A Car API Çalışıyor! 🚀"}

@@ -1,15 +1,20 @@
+// frontend/app/page.js
+
 "use client";
 import { useEffect, useState } from "react";
 // Grid normal import edildi
 import { Container, Card, CardMedia, CardContent, Typography, Button, AppBar, Toolbar, Box, Grid } from "@mui/material";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import Notification from "./components/Notification"; // 👈 YENİ IMPORT
 
 export default function HomePage() {
   const [cars, setCars] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isClient, setIsClient] = useState(false); 
+  // 👇 YENİ STATE: Bildirimleri yönetmek için
+  const [notification, setNotification] = useState({ open: false, message: '', severity: '' }); 
 
   const router = useRouter();
 
@@ -35,17 +40,41 @@ export default function HomePage() {
     localStorage.clear();
     setIsLoggedIn(false);
     setIsAdmin(false);
-    alert("Çıkış yapıldı.");
-    router.refresh(); 
+    
+    // 👇 ESKİ ALERT YERİNE: Snackbar ile bildirim göster
+    setNotification({ open: true, message: "Çıkış başarılı!", severity: "success" });
+    
+    // Router yenilenmeden önce kullanıcının mesajı görmesi için kısa bir gecikme
+    setTimeout(() => {
+      router.refresh(); 
+    }, 500); 
   };
+  
+  // Bildirimi kapatma fonksiyonu
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
 
   return (
     <>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', letterSpacing: 1 }}>
-            RENT A CAR
-          </Typography>
+      <AppBar position="static" sx={{ bgcolor: '#1E2022' }}>
+        <Toolbar sx={{ minHeight: '64px' }}>
+          
+          {/* 👇 LOGO ALANI */}
+          <Box 
+            onClick={() => router.push('/')}
+            sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <Box sx={{ height: '55px', display: 'flex', alignItems: 'center' }}>
+                <img 
+                  src="/logo.png" 
+                  alt="Rent A Car Logo"
+                  style={{ height: '100%', objectFit: 'contain' }}
+                />
+            </Box>
+          </Box>
+          {/* 👆 LOGO ALANI SONU */}
 
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             {isClient && (
@@ -90,16 +119,14 @@ export default function HomePage() {
         </Toolbar>
       </AppBar>
 
+      {/* ARAÇ LİSTESİ */}
       <Container sx={{ py: 6 }}>
         <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
           Tüm Araçlar
         </Typography>
         
-        {/* 👇 GRID v6 GÜNCELLEMESİ */}
         <Grid container spacing={4}>
           {cars.map((car) => (
-            // ESKİSİ: <Grid item xs={12} sm={6} md={4}>
-            // YENİSİ: <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Grid key={car.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <Card 
                 sx={{ height: '100%', cursor: 'pointer', transition: "0.3s", "&:hover": { transform: "translateY(-5px)", boxShadow: "0 10px 20px rgba(0,0,0,0.15)" }}}
@@ -132,6 +159,14 @@ export default function HomePage() {
           ))}
         </Grid>
       </Container>
+      
+      {/* 👇 YENİ: NOTIFICATION BİLEŞENİ (Pop-up) */}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        handleClose={handleCloseNotification}
+      />
     </>
   );
 }
