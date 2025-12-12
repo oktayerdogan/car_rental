@@ -1,9 +1,11 @@
-# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # 👈 BU IMPORT ÇOK ÖNEMLİ
+import os
 from .database import engine, Base
 from .routers import users, cars, reservations, auth 
 
+# Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Car Rental API")
@@ -22,19 +24,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🚀 Rotaları Sisteme Dahil Etme
-# ---------------------------------------------------------
+# 🚀 KRİTİK AYAR: STATİK DOSYALARI DIŞARI AÇMA
+# Eğer "static" klasörü yoksa oluştur (Hata almamak için)
+if not os.path.exists("static"):
+    os.makedirs("static")
 
-# 1. Auth için prefix'i BURADAN veriyoruz.
-# Çünkü auth.py dosyasının içinde prefix yok.
-# Sonuç: http://127.0.0.1:8000/auth/login çalışacak.
+# "/static" adresine gelen istekleri "static" klasörüne yönlendir
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# 🚀 Routerları Ekleme
 app.include_router(auth.router, prefix="/auth") 
-
-# 2. Diğerleri için prefix vermiyoruz.
-# Çünkü onların kendi dosyalarında (cars.py, users.py) zaten prefix="/cars" yazıyor.
-# Buradan da verirsek "/cars/cars/" olur ve bozulur.
-app.include_router(users.router)      
-app.include_router(cars.router)       
+app.include_router(users.router)       
+app.include_router(cars.router)        
 app.include_router(reservations.router) 
 
 @app.get("/")

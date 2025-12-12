@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import shutil
 import os
+import uuid 
 from .. import models, schemas, database, auth
 
 router = APIRouter(
@@ -11,11 +12,16 @@ router = APIRouter(
 )
 
 get_db = database.get_db
-get_current_user = auth.get_current_user
 
-# ✅ EKLEME İŞLEMİ (RESİMLİ & DETAYLI)
-# Sadece Admin yapabilir
-@router.post("/", response_model=schemas.Car)
+# 💾 RESİMLERİN KAYDEDİLECEĞİ KLASÖR
+IMAGEDIR = "static/images/"
+
+if not os.path.exists(IMAGEDIR):
+    os.makedirs(IMAGEDIR)
+
+
+# ✅ EKLEME İŞLEMİ (SADECE ADMIN)
+@router.post("/", response_model=schemas.Car, status_code=status.HTTP_201_CREATED)
 def create_car(
     brand: str = Form(...),
     model: str = Form(...),
@@ -23,81 +29,85 @@ def create_car(
     price_per_day: float = Form(...),
     gear_type: str = Form("Otomatik"),
     fuel_type: str = Form("Benzin"),
-    files: List[UploadFile] = File(default=[]), # Resim Listesi
+    is_available: bool = Form(True),
+    files: List[UploadFile] = File(default=[]), 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(auth.require_admin)
 ):
-    # 1. Yetki Kontrolü
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sadece admin araç ekleyebilir")
-
-    # 2. Arabayı DB'ye Kaydet
+    # 1. Arabayı DB'ye Kaydet
     new_car = models.Car(
         brand=brand,
         model=model,
         year=year,
         price_per_day=price_per_day,
         gear_type=gear_type,
-        fuel_type=fuel_type
+        fuel_type=fuel_type,
+        is_available=is_available,
+        image_url="" 
     )
     db.add(new_car)
     db.commit()
     db.refresh(new_car)
 
-    # 3. Resimleri Kaydet (Varsa)
-    if not os.path.exists("static/images"):
-        os.makedirs("static/images")
-
+    # 2. Resimleri Kaydet
     if files:
-        for index, file in enumerate(files):
-            # Dosya ismini temizle ve benzersiz yap
-            safe_filename = f"{new_car.id}_{file.filename.replace(' ', '_')}"
-            file_location = f"static/images/{safe_filename}"
+        saved_urls = []
+        for file in files:
+            # Benzersiz isim oluştur
+            unique_filename = f"{uuid.uuid4()}_{file.filename.replace(' ', '_')}"
+            file_path = f"{IMAGEDIR}{unique_filename}"
             
-            # Sunucuya (Klasöre) Kaydet
-            with open(file_location, "wb+") as buffer:
+            # 1. Fiziksel Kayıt (Klasöre)
+            with open(file_path, "wb+") as buffer:
                 shutil.copyfileobj(file.file, buffer)
             
             # URL Oluştur
-            img_url = f"http://127.0.0.1:8000/{file_location}"
+            img_url = f"http://127.0.0.1:8000/static/images/{unique_filename}"
             
-            # Resim Tablosuna Ekle
+            # 2. Veritabanı Kaydı (CarImage Tablosuna)
+            # 🚨 ARTIK TRY-EXCEPT YOK! KESİN KAYDEDİYORUZ.
             db_image = models.CarImage(url=img_url, car_id=new_car.id)
             db.add(db_image)
+            
+            saved_urls.append(img_url)
 
-            # İlk resmi kapak resmi olarak ayarla
-            if index == 0:
-                new_car.image_url = img_url
-        
+        # İlk resmi aracın kapak resmi (image_url) olarak güncelle
+        if saved_urls:
+            new_car.image_url = saved_urls[0]
+            
+        # Tüm resim eklemelerini onayla
         db.commit()
         db.refresh(new_car)
 
     return new_car
 
-# ✅ LİSTELEME (HERKES YAPABİLİR)
+
+# ✅ LİSTELEME
 @router.get("/", response_model=List[schemas.Car])
 def get_cars(db: Session = Depends(get_db)):
     return db.query(models.Car).all()
+
 
 # ✅ TEK ARAÇ GETİRME
 @router.get("/{car_id}", response_model=schemas.Car)
 def get_car(car_id: int, db: Session = Depends(get_db)):
     car = db.query(models.Car).filter(models.Car.id == car_id).first()
     if not car:
-        raise HTTPException(status_code=404, detail="Car not found")
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
     return car
 
+
 # ✅ SİLME (SADECE ADMIN)
-@router.delete("/{car_id}")
-def delete_car(car_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz işlem")
-    
+@router.delete("/{car_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_car(
+    car_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(auth.require_admin)
+):
     car = db.query(models.Car).filter(models.Car.id == car_id).first()
     if not car:
-        raise HTTPException(status_code=404, detail="Car not found")
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
     
-    # İlişkili resimleri de silebiliriz (Veritabanı cascade ayarlıysa otomatik silinir)
     db.delete(car)
     db.commit()
-    return {"message": "Car Deleted"}
+    return

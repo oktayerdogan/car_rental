@@ -27,32 +27,31 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# --- RESİM ŞEMASI (YENİ) ---
+# --- RESİM ŞEMASI ---
 class CarImage(BaseModel):
     id: int
     url: str
     class Config:
         from_attributes = True
 
-# --- CAR ŞEMALARI (GÜNCELLENDİ) ---
+# --- CAR ŞEMALARI ---
 class CarBase(BaseModel):
     brand: str
     model: str
     year: int
-    price_per_day: float # Fiyatı float yaptık
-    gear_type: str = "Otomatik" # Yeni alan
-    fuel_type: str = "Benzin"   # Yeni alan
+    price_per_day: float
+    gear_type: str = "Otomatik"
+    fuel_type: str = "Benzin"
 
 class CarCreate(CarBase):
     pass
 
-# Router'da "response_model=schemas.Car" dediğimiz için bu ismin "Car" olması önemli
 class Car(CarBase):
     id: int
     is_available: bool
     image_url: Optional[str] = None # Kapak resmi
 
-    # Resim Galerisi Listesi
+    # 👇 GALERİ İÇİN KRİTİK NOKTA
     images: List[CarImage] = [] 
     
     class Config:
@@ -64,6 +63,7 @@ class ReservationCreate(BaseModel):
     start_date: date
     end_date: date
 
+# 👇 GÜNCELLENDİ: Admin Panelinde detayları görmek için
 class ReservationResponse(BaseModel):
     id: int
     car_id: int
@@ -71,5 +71,10 @@ class ReservationResponse(BaseModel):
     start_date: date
     end_date: date
     
+    # Nested (İç içe) Objeler:
+    # Backend artık sadece ID değil, tüm araba ve kullanıcı bilgisini de gönderecek.
+    car: Optional[Car] = None 
+    user: Optional[UserResponse] = None
+
     class Config:
         from_attributes = True
