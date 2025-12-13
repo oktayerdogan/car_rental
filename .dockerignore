@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.env
+rentacar.db  # Veritabanını kopyalamasın, volume ile bağlayacağız
+static/      # Static klasörünü kopyalamasın, volume ile bağlayacağız
