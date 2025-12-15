@@ -78,3 +78,26 @@ class ReservationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- ÖDEME ŞEMALARI ---
+class PaymentCard(BaseModel):
+    """Kart bilgileri şeması"""
+    card_holder_name: str
+    card_number: str
+    expire_month: str
+    expire_year: str
+    cvc: str
+
+class ReservationWithPayment(BaseModel):
+    """Ödeme ile birlikte rezervasyon oluşturma şeması"""
+    car_id: int
+    start_date: date
+    end_date: date
+    payment_card: PaymentCard
+
+class PaymentResponse(BaseModel):
+    """Ödeme sonucu yanıt şeması"""
+    success: bool
+    message: str
+    payment_id: Optional[str] = None
+    reservation: Optional[ReservationResponse] = None
