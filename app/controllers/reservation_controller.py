@@ -1,69 +1,70 @@
+# app/controllers/reservation_controller.py
+"""
+Reservation Controller (MVC Pattern)
+Rezervasyon işlemlerini yönetir.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
+
 from ..database import get_db
-from .. import schemas, models
+from .. import schemas
+from ..models import User
 from ..crud import reservation as reservation_crud
 from ..crud import car as car_crud
 from ..auth import get_current_user, require_admin
 from ..services.payment import iyzico_service
-
-# Decorator importları (MVC Pattern)
-from ..decorators.logging_decorator import log_request, log_response
+from ..services.reservation_service import ReservationService
+from ..decorators.logging_decorator import log_request
 from ..decorators.error_handler import handle_exceptions, handle_db_exceptions
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
-# ✔ Kullanıcının kendi rezervasyonlarını getir (Müşteri için) - Decorator ile
-@router.get("/me", response_model=list[schemas.ReservationResponse])
+
+@router.get("/me", response_model=List[schemas.ReservationResponse])
 @handle_exceptions
 @log_request
 async def get_my_reservations(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user) 
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Mevcut kullanıcının (Müşteri) kendi rezervasyonlarını listeler.
+    Kullanıcının kendi rezervasyonlarını listeler.
     
-    Decorator'lar:
-    - @handle_exceptions: Genel hataları yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
-    return reservation_crud.get_reservations_by_user(db, user_id=current_user.id)
+    reservation_service = ReservationService(db)
+    return reservation_service.get_user_reservations(current_user.id)
 
 
-# ✔ Yeni rezervasyon oluştur (Ödeme ile birlikte) - Decorator ile
 @router.post("/", response_model=schemas.PaymentResponse, status_code=status.HTTP_201_CREATED)
 @handle_db_exceptions
 @log_request
 async def create_reservation_with_payment(
     reservation: schemas.ReservationWithPayment,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Yeni rezervasyon oluşturur (Ödeme işlemi ile birlikte).
     
-    1. Tarih çakışması kontrolü yapılır
-    2. Araç bilgileri alınır ve toplam tutar hesaplanır
-    3. Iyzico'ya ödeme isteği gönderilir
-    4. Ödeme başarılıysa rezervasyon veritabanına kaydedilir
-    5. Ödeme başarısızsa hata döndürülür
+    Controller -> Service pattern kullanılır.
     """
+    reservation_service = ReservationService(db)
     
-    # 1. Tarih çakışması kontrolü
-    conflict = reservation_crud.check_reservation_overlap(
-        db=db,
-        car_id=reservation.car_id,
-        start_date=reservation.start_date,
-        end_date=reservation.end_date
-    )
-    if conflict:
+    # Tarih çakışması kontrolü
+    if not reservation_service.check_car_availability(
+        reservation.car_id, 
+        reservation.start_date, 
+        reservation.end_date
+    ):
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Bu araç seçilen tarihler arasında zaten kiralanmış."
         )
     
-    # 2. Araç bilgilerini al
+    # Araç bilgilerini al
     car = car_crud.get_car(db, reservation.car_id)
     if not car:
         raise HTTPException(status_code=404, detail="Araç bulunamadı.")
@@ -71,15 +72,20 @@ async def create_reservation_with_payment(
     if not car.is_available:
         raise HTTPException(status_code=400, detail="Bu araç şu anda müsait değil.")
     
-    # 3. Toplam tutarı hesapla (gün sayısı × günlük fiyat)
+    # Toplam tutarı hesapla
+    total_price = reservation_service.calculate_total_price(
+        reservation.car_id,
+        reservation.start_date,
+        reservation.end_date
+    )
+    
     rental_days = (reservation.end_date - reservation.start_date).days
     if rental_days <= 0:
         raise HTTPException(status_code=400, detail="Bitiş tarihi başlangıç tarihinden sonra olmalıdır.")
     
-    total_price = rental_days * car.price_per_day
     car_name = f"{car.brand} {car.model} ({car.year})"
     
-    # 4. Iyzico'ya ödeme isteği gönder
+    # Iyzico'ya ödeme isteği gönder
     payment_result = iyzico_service.create_payment(
         card_holder_name=reservation.payment_card.card_holder_name,
         card_number=reservation.payment_card.card_number,
@@ -95,9 +101,8 @@ async def create_reservation_with_payment(
         end_date=reservation.end_date
     )
     
-    # 5. Ödeme sonucuna göre işlem yap
+    # Ödeme sonucuna göre işlem yap
     if payment_result['success']:
-        # Ödeme başarılı - Rezervasyonu veritabanına kaydet
         reservation_create = schemas.ReservationCreate(
             car_id=reservation.car_id,
             start_date=reservation.start_date,
@@ -114,82 +119,76 @@ async def create_reservation_with_payment(
             reservation=db_reservation
         )
     else:
-        # Ödeme başarısız - Hata döndür
         error_msg = payment_result.get('error_message', 'Ödeme işlemi başarısız oldu.')
-        raise HTTPException(
-            status_code=400,
-            detail=f"Ödeme başarısız: {error_msg}"
-        )
+        raise HTTPException(status_code=400, detail=f"Ödeme başarısız: {error_msg}")
 
 
-# 👑 ✔ Tüm rezervasyonları getir (Admin için) - Decorator ile
-@router.get("/", response_model=list[schemas.ReservationResponse])
+@router.get("/", response_model=List[schemas.ReservationResponse])
 @handle_exceptions
 @log_request
-async def get_reservations(
+async def get_all_reservations(
     db: Session = Depends(get_db),
-    current_admin: models.User = Depends(require_admin)
+    current_admin: User = Depends(require_admin)
 ):
     """
-    Tüm rezervasyonları listeler (Admin Paneli için).
+    Tüm rezervasyonları listeler (Admin Only).
     
-    Decorator'lar:
-    - @handle_exceptions: Genel hataları yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
-    return reservation_crud.get_all_reservations(db)
+    reservation_service = ReservationService(db)
+    return reservation_service.get_all_reservations()
 
 
-# ✔ ID'ye göre rezervasyon getir - Decorator ile
 @router.get("/{reservation_id}", response_model=schemas.ReservationResponse)
 @handle_exceptions
 @log_request
-async def get_reservation(reservation_id: int, db: Session = Depends(get_db)):
+async def get_reservation_by_id(
+    reservation_id: int,
+    db: Session = Depends(get_db)
+):
     """
-    ID ile tek bir rezervasyonu getirir.
+    ID ile rezervasyon getirir.
     
-    Decorator'lar:
-    - @handle_exceptions: Genel hataları yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
-    res = reservation_crud.get_reservation_by_id(db, reservation_id)
-    if not res:
+    reservation_service = ReservationService(db)
+    reservation = reservation_service.get_reservation_by_id(reservation_id)
+    
+    if not reservation:
         raise HTTPException(status_code=404, detail="Rezervasyon bulunamadı.")
-    return res
+    
+    return reservation
 
 
-# ✔ Rezervasyon sil (Müşteri veya Admin yapabilir) - Decorator ile
 @router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
 @handle_db_exceptions
 @log_request
 async def delete_reservation(
-    reservation_id: int, 
+    reservation_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Rezervasyon siler (Sadece sahibi veya Admin).
     
-    Decorator'lar:
-    - @handle_db_exceptions: Veritabanı hatalarını yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
-    res = reservation_crud.get_reservation_by_id(db, reservation_id)
+    reservation_service = ReservationService(db)
+    reservation = reservation_service.get_reservation_by_id(reservation_id)
     
-    if not res:
+    if not reservation:
         raise HTTPException(status_code=404, detail="Rezervasyon bulunamadı.")
-        
-    is_owner = res.user_id == current_user.id
+    
+    is_owner = reservation.user_id == current_user.id
     is_admin = current_user.role == "admin"
     
     if not is_owner and not is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Bu rezervasyonu silme yetkiniz yok."
         )
-
-    success = reservation_crud.delete_reservation(db, reservation_id)
-    if not success:
+    
+    if not reservation_service.cancel_reservation(reservation_id):
         raise HTTPException(status_code=500, detail="Silme işlemi başarısız oldu.")
-        
-    return {"message": "Rezervasyon silindi."}
+    
+    return None

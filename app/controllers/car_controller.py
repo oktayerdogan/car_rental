@@ -1,31 +1,32 @@
+# app/controllers/car_controller.py
+"""
+Car Controller (MVC Pattern)
+HTTP isteklerini karşılar ve CarService'e yönlendirir.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List
 import shutil
 import os
-import uuid 
-from .. import models, schemas, database, auth
+import uuid
 
-# Decorator importları (MVC Pattern)
-from ..decorators.logging_decorator import log_request, log_response
-from ..decorators.error_handler import handle_exceptions, handle_db_exceptions
+from ..database import get_db
+from .. import schemas
+from ..models import Car, CarImage, User
+from ..auth import require_admin
 from ..services.car_service import CarService
+from ..decorators.logging_decorator import log_request
+from ..decorators.error_handler import handle_exceptions, handle_db_exceptions
 
-router = APIRouter(
-    prefix="/cars",
-    tags=["Cars"]
-)
+router = APIRouter(prefix="/cars", tags=["Cars"])
 
-get_db = database.get_db
-
-# 💾 RESİMLERİN KAYDEDİLECEĞİ KLASÖR
+# Resim klasörü
 IMAGEDIR = "static/images/"
-
 if not os.path.exists(IMAGEDIR):
     os.makedirs(IMAGEDIR)
 
 
-# ✅ EKLEME İŞLEMİ (SADECE ADMIN) - Decorator ile
 @router.post("/", response_model=schemas.Car, status_code=status.HTTP_201_CREATED)
 @handle_db_exceptions
 @log_request
@@ -37,119 +38,98 @@ async def create_car(
     gear_type: str = Form("Otomatik"),
     fuel_type: str = Form("Benzin"),
     is_available: bool = Form(True),
-    files: List[UploadFile] = File(default=[]), 
+    files: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.require_admin)
+    current_user: User = Depends(require_admin)
 ):
     """
-    Yeni araç ekler (Admin Only)
+    Yeni araç oluşturur (Admin Only)
     
-    Decorator'lar:
-    - @handle_db_exceptions: Veritabanı hatalarını yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
+    Decorator'lar: @handle_db_exceptions, @log_request
     """
-    # Service Layer kullanımı (MVC)
+    # Service Layer
     car_service = CarService(db)
     
-    # 1. Arabayı DB'ye Kaydet
-    new_car = models.Car(
+    # Araç oluştur
+    new_car = car_service.create_car(
         brand=brand,
         model=model,
         year=year,
         price_per_day=price_per_day,
         gear_type=gear_type,
-        fuel_type=fuel_type,
-        is_available=is_available,
-        image_url="" 
+        fuel_type=fuel_type
     )
-    db.add(new_car)
-    db.commit()
-    db.refresh(new_car)
-
-    # 2. Resimleri Kaydet
+    
+    # Resimleri kaydet
     if files:
         saved_urls = []
         for file in files:
-            # Benzersiz isim oluştur
             unique_filename = f"{uuid.uuid4()}_{file.filename.replace(' ', '_')}"
             file_path = f"{IMAGEDIR}{unique_filename}"
             
-            # 1. Fiziksel Kayıt (Klasöre)
             with open(file_path, "wb+") as buffer:
                 shutil.copyfileobj(file.file, buffer)
             
-            # URL Oluştur
             img_url = f"http://127.0.0.1:8000/static/images/{unique_filename}"
-            
-            # 2. Veritabanı Kaydı (CarImage Tablosuna)
-            db_image = models.CarImage(url=img_url, car_id=new_car.id)
-            db.add(db_image)
-            
+            car_service.add_car_image(new_car.id, img_url)
             saved_urls.append(img_url)
-
-        # İlk resmi aracın kapak resmi (image_url) olarak güncelle
+        
         if saved_urls:
             new_car.image_url = saved_urls[0]
-            
-        # Tüm resim eklemelerini onayla
-        db.commit()
-        db.refresh(new_car)
-
+            db.commit()
+            db.refresh(new_car)
+    
     return new_car
 
 
-# ✅ LİSTELEME - Decorator ile
 @router.get("/", response_model=List[schemas.Car])
 @handle_exceptions
 @log_request
-async def get_cars(db: Session = Depends(get_db)):
+async def get_all_cars(db: Session = Depends(get_db)):
     """
     Tüm araçları listeler
     
-    Decorator'lar:
-    - @handle_exceptions: Genel hataları yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
     car_service = CarService(db)
     return car_service.get_all_cars()
 
 
-# ✅ TEK ARAÇ GETİRME - Decorator ile
 @router.get("/{car_id}", response_model=schemas.Car)
 @handle_exceptions
 @log_request
-async def get_car(car_id: int, db: Session = Depends(get_db)):
+async def get_car_by_id(car_id: int, db: Session = Depends(get_db)):
     """
     ID'ye göre araç getirir
     
-    Decorator'lar:
-    - @handle_exceptions: Genel hataları yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
     car_service = CarService(db)
     car = car_service.get_car_by_id(car_id)
+    
     if not car:
         raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
     return car
 
 
-# ✅ SİLME (SADECE ADMIN) - Decorator ile
 @router.delete("/{car_id}", status_code=status.HTTP_204_NO_CONTENT)
 @handle_db_exceptions
 @log_request
 async def delete_car(
-    car_id: int, 
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(auth.require_admin)
+    car_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
 ):
     """
     Araç siler (Admin Only)
     
-    Decorator'lar:
-    - @handle_db_exceptions: Veritabanı hatalarını yakalar
-    - @log_request: İsteği loglar
+    Controller -> Service pattern kullanılır.
     """
     car_service = CarService(db)
+    
     if not car_service.delete_car(car_id):
         raise HTTPException(status_code=404, detail="Araç bulunamadı")
-    return
+    
+    return None

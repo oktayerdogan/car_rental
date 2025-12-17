@@ -1,42 +1,44 @@
-# app/routers/messages.py
+# app/controllers/message_controller.py
+"""
+Message Controller (MVC Pattern)
+Mesajlaşma işlemlerini yönetir.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-from .. import schemas, models
-from ..database import get_db
-from ..auth import get_current_user, require_admin
 
-# Decorator importları (MVC Pattern)
+from ..database import get_db
+from .. import schemas
+from ..models import Message, User
+from ..auth import get_current_user, require_admin
 from ..decorators.logging_decorator import log_request
 from ..decorators.error_handler import handle_exceptions, handle_db_exceptions
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
-# Kullanıcı mesaj gönderir - Decorator ile
+
 @router.post("/", response_model=schemas.MessageResponse)
 @handle_db_exceptions
 @log_request
 async def send_message(
-    message: schemas.MessageCreate, 
+    message: schemas.MessageCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Kullanıcı admin'e mesaj gönderir.
     
-    Decorator'lar:
-    - @handle_db_exceptions: Veritabanı hatalarını yakalar
-    - @log_request: İsteği loglar
+    Decorator'lar: @handle_db_exceptions, @log_request
     """
-    
     if not message.subject.strip() or not message.content.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Konu ve mesaj içeriği boş olamaz."
         )
     
-    db_message = models.Message(
+    db_message = Message(
         user_id=current_user.id,
         subject=message.subject.strip(),
         content=message.content.strip()
@@ -48,55 +50,76 @@ async def send_message(
     
     return db_message
 
-# Kullanıcı kendi mesajlarını görür
+
 @router.get("/me", response_model=List[schemas.MessageResponse])
-def get_my_messages(
+@handle_exceptions
+@log_request
+async def get_my_messages(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Kullanıcının kendi mesajlarını listeler"""
-    messages = db.query(models.Message).filter(
-        models.Message.user_id == current_user.id
-    ).order_by(models.Message.created_at.desc()).all()
+    """
+    Kullanıcının kendi mesajlarını listeler.
+    
+    Decorator'lar: @handle_exceptions, @log_request
+    """
+    messages = db.query(Message).filter(
+        Message.user_id == current_user.id
+    ).order_by(Message.created_at.desc()).all()
     
     return messages
 
-# Admin tüm mesajları görür
+
 @router.get("/", response_model=List[schemas.MessageResponse])
-def get_all_messages(
+@handle_exceptions
+@log_request
+async def get_all_messages(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_admin)
+    current_user: User = Depends(require_admin)
 ):
-    """Admin tüm mesajları listeler"""
-    messages = db.query(models.Message).order_by(
-        models.Message.is_read.asc(),  # Okunmamışlar önce
-        models.Message.created_at.desc()
+    """
+    Tüm mesajları listeler (Admin Only).
+    
+    Decorator'lar: @handle_exceptions, @log_request
+    """
+    messages = db.query(Message).order_by(
+        Message.is_read.asc(),
+        Message.created_at.desc()
     ).all()
     
     return messages
 
-# Okunmamış mesaj sayısı (Admin)
+
 @router.get("/unread-count")
-def get_unread_count(
+@handle_exceptions
+@log_request
+async def get_unread_count(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_admin)
+    current_user: User = Depends(require_admin)
 ):
-    """Okunmamış mesaj sayısını döndürür"""
-    count = db.query(models.Message).filter(
-        models.Message.is_read == False
-    ).count()
+    """
+    Okunmamış mesaj sayısını döndürür (Admin Only).
     
+    Decorator'lar: @handle_exceptions, @log_request
+    """
+    count = db.query(Message).filter(Message.is_read == False).count()
     return {"unread_count": count}
 
-# Admin mesajı okur (is_read = True)
+
 @router.put("/{message_id}/read")
-def mark_as_read(
+@handle_db_exceptions
+@log_request
+async def mark_as_read(
     message_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_admin)
+    current_user: User = Depends(require_admin)
 ):
-    """Mesajı okundu olarak işaretler"""
-    message = db.query(models.Message).filter(models.Message.id == message_id).first()
+    """
+    Mesajı okundu olarak işaretler (Admin Only).
+    
+    Decorator'lar: @handle_db_exceptions, @log_request
+    """
+    message = db.query(Message).filter(Message.id == message_id).first()
     
     if not message:
         raise HTTPException(status_code=404, detail="Mesaj bulunamadı.")
@@ -106,16 +129,22 @@ def mark_as_read(
     
     return {"message": "Mesaj okundu olarak işaretlendi."}
 
-# Admin mesaja yanıt verir
+
 @router.put("/{message_id}/reply", response_model=schemas.MessageResponse)
-def reply_to_message(
+@handle_db_exceptions
+@log_request
+async def reply_to_message(
     message_id: int,
     reply_data: schemas.MessageReply,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_admin)
+    current_user: User = Depends(require_admin)
 ):
-    """Admin mesaja yanıt verir"""
-    message = db.query(models.Message).filter(models.Message.id == message_id).first()
+    """
+    Admin mesaja yanıt verir.
+    
+    Decorator'lar: @handle_db_exceptions, @log_request
+    """
+    message = db.query(Message).filter(Message.id == message_id).first()
     
     if not message:
         raise HTTPException(status_code=404, detail="Mesaj bulunamadı.")
@@ -132,15 +161,21 @@ def reply_to_message(
     
     return message
 
-# Mesaj silme (Admin)
+
 @router.delete("/{message_id}")
-def delete_message(
+@handle_db_exceptions
+@log_request
+async def delete_message(
     message_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_admin)
+    current_user: User = Depends(require_admin)
 ):
-    """Mesajı siler"""
-    message = db.query(models.Message).filter(models.Message.id == message_id).first()
+    """
+    Mesajı siler (Admin Only).
+    
+    Decorator'lar: @handle_db_exceptions, @log_request
+    """
+    message = db.query(Message).filter(Message.id == message_id).first()
     
     if not message:
         raise HTTPException(status_code=404, detail="Mesaj bulunamadı.")

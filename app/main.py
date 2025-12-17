@@ -1,14 +1,33 @@
+"""
+Rent A Car API - Main Application
+MVC Pattern Implementation
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles  # 👈 BU IMPORT ÇOK ÖNEMLİ
+from fastapi.staticfiles import StaticFiles
 import os
+
 from .database import engine, Base
-from .routers import users, cars, reservations, auth, reviews, messages 
+
+# MVC Pattern - Controllers (eski routers da desteklenir)
+from .controllers import (
+    car_router,
+    auth_router, 
+    reservation_router,
+    review_router,
+    message_router
+)
+from .routers import users  # User router henüz controller'a taşınmadı
 
 # Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Car Rental API")
+app = FastAPI(
+    title="Car Rental API",
+    description="MVC Pattern ile Araç Kiralama Sistemi",
+    version="2.0.0"
+)
 
 # CORS Ayarları
 origins = [
@@ -24,23 +43,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🚀 KRİTİK AYAR: STATİK DOSYALARI DIŞARI AÇMA
-# Eğer "static" klasörü yoksa oluştur (Hata almamak için)
+# Statik dosyalar klasörü
 if not os.path.exists("static"):
     os.makedirs("static")
 
-# "/static" adresine gelen istekleri "static" klasörüne yönlendir
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# 🚀 Routerları Ekleme
-app.include_router(auth.router, prefix="/auth") 
-app.include_router(users.router)       
-app.include_router(cars.router)        
-app.include_router(reservations.router)
-app.include_router(reviews.router)
-app.include_router(messages.router) 
+# ============================================
+# MVC PATTERN - CONTROLLER ROUTING
+# ============================================
+
+# Auth Controller
+app.include_router(auth_router, prefix="/auth")
+
+# User Controller (henüz eski sistemde)
+app.include_router(users.router)
+
+# Car Controller
+app.include_router(car_router)
+
+# Reservation Controller
+app.include_router(reservation_router)
+
+# Review Controller
+app.include_router(review_router)
+
+# Message Controller
+app.include_router(message_router)
+
 
 @app.get("/")
 def read_root():
-    return {"message": "Rent A Car API Çalışıyor! 🚀"}
+    """API Ana Sayfa"""
+    return {
+        "message": "Rent A Car API Çalışıyor! 🚀",
+        "version": "2.0.0",
+        "pattern": "MVC (Model-View-Controller)",
+        "features": [
+            "Decorators: @log_request, @handle_exceptions",
+            "Services: CarService, ReservationService, UserService",
+            "Controllers: Ayrı klasörde organize"
+        ]
+    }
