@@ -15,7 +15,13 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     hashed_pw = hash_password(user.password)
     # İlk kayıt olanı admin yapmak istersen burayı role="admin" yapabilirsin test için
-    db_user = models.User(email=user.email, password=hashed_pw, role="user")
+    db_user = models.User(
+        email=user.email, 
+        password=hashed_pw, 
+        role="user",
+        first_name=user.first_name,
+        last_name=user.last_name
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

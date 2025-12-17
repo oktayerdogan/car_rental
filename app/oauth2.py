@@ -22,17 +22,16 @@ def create_access_token(data: dict):
 def verify_access_token(token: str, credentials_exception):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        id: str = payload.get("user_id")
-        role: str = payload.get("role") # Rol bilgisini de okuyalım
+        # Token 'sub' anahtarı ile oluşturulmuş
+        id: str = payload.get("sub")
+        role: str = payload.get("role")
 
         if id is None:
             raise credentials_exception
         
-        # Şemaya uygun veri döndür
-        token_data = schemas.TokenData(id=str(id), role=role) 
+        return {"id": id, "role": role}
     except JWTError:
         raise credentials_exception
-    return token_data
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
     credentials_exception = HTTPException(
@@ -43,5 +42,5 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     token_data = verify_access_token(token, credentials_exception)
     
-    user = db.query(models.User).filter(models.User.id == token_data.id).first()
+    user = db.query(models.User).filter(models.User.id == int(token_data["id"])).first()
     return user

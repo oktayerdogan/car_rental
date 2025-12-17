@@ -1,6 +1,6 @@
 # app/schemas.py
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 # --- TOKEN ŞEMALARI ---
@@ -20,10 +20,14 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
     role: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -101,3 +105,65 @@ class PaymentResponse(BaseModel):
     message: str
     payment_id: Optional[str] = None
     reservation: Optional[ReservationResponse] = None
+
+# --- YORUM ŞEMALARI ---
+class ReviewCreate(BaseModel):
+    """Yorum oluşturma şeması"""
+    car_id: int
+    rating: int  # 1-5 yıldız
+    comment: str
+
+class ReviewUserInfo(BaseModel):
+    """Yorum sahibi bilgisi"""
+    id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: str
+    class Config:
+        from_attributes = True
+
+class ReviewResponse(BaseModel):
+    """Yorum yanıt şeması"""
+    id: int
+    car_id: int
+    user_id: int
+    rating: int
+    comment: str
+    created_at: datetime
+    user: Optional[ReviewUserInfo] = None
+    car: Optional[Car] = None
+    class Config:
+        from_attributes = True
+
+# --- MESAJ ŞEMALARI ---
+class MessageCreate(BaseModel):
+    """Mesaj oluşturma şeması"""
+    subject: str
+    content: str
+
+class MessageUserInfo(BaseModel):
+    """Mesaj sahibi bilgisi"""
+    id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: str
+    class Config:
+        from_attributes = True
+
+class MessageResponse(BaseModel):
+    """Mesaj yanıt şeması"""
+    id: int
+    user_id: int
+    subject: str
+    content: str
+    reply: Optional[str] = None
+    is_read: bool
+    created_at: datetime
+    replied_at: Optional[datetime] = None
+    user: Optional[MessageUserInfo] = None
+    class Config:
+        from_attributes = True
+
+class MessageReply(BaseModel):
+    """Admin mesaj yanıtı"""
+    reply: str

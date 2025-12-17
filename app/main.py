@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # 👈 BU IMPORT ÇOK ÖNEMLİ
 import os
 from .database import engine, Base
-from .routers import users, cars, reservations, auth 
+from .routers import users, cars, reservations, auth, reviews, messages 
 
 # Veritabanı tablolarını oluştur
 Base.metadata.create_all(bind=engine)
@@ -37,7 +37,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.router, prefix="/auth") 
 app.include_router(users.router)       
 app.include_router(cars.router)        
-app.include_router(reservations.router) 
+app.include_router(reservations.router)
+app.include_router(reviews.router)
+app.include_router(messages.router) 
 
 @app.get("/")
 def read_root():

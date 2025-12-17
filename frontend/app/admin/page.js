@@ -1,22 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
-// Importlar
-import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, MenuItem, Chip, Box, Stack, Divider, Alert, AppBar, Toolbar } from "@mui/material";
+import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, MenuItem, Chip, Box, Stack, Divider, Alert, Rating } from "@mui/material";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete'; 
-import HomeIcon from '@mui/icons-material/Home'; // Ana Sayfa ikonu
+import DeleteIcon from '@mui/icons-material/Delete';
+import StarIcon from '@mui/icons-material/Star';
+import Navbar from "../components/Navbar";
 
 const API_URL = "http://127.0.0.1:8000";
 
 export default function AdminPage() {
     const [cars, setCars] = useState([]);
     const [reservations, setReservations] = useState([]);
+    const [reviews, setReviews] = useState([]);
     const [loadingReservations, setLoadingReservations] = useState(true);
+    const [loadingReviews, setLoadingReviews] = useState(true);
 
     const router = useRouter();
-    
+
     // --- ARAÇ FORM STATE ---
     const [brand, setBrand] = useState("");
     const [model, setModel] = useState("");
@@ -29,18 +31,16 @@ export default function AdminPage() {
     useEffect(() => {
         const token = localStorage.getItem("token");
         const role = localStorage.getItem("role");
-        
+
         if (!token || role !== "admin") {
             router.push("/");
             return;
         }
-        
-        fetchCars();
-        fetchReservations(token); 
-    }, [router]);
 
-    // Diğer fonksiyonlar (fetchCars, fetchReservations, handleAddCar, handleDeleteCar, handleDeleteReservation) aynı kalır.
-    // Ancak temizlik için Navbar'da çıkış yapma fonksiyonunu ekleyelim:
+        fetchCars();
+        fetchReservations(token);
+        fetchReviews(token);
+    }, [router]);
 
     const fetchCars = async () => {
         try {
@@ -48,18 +48,32 @@ export default function AdminPage() {
             setCars(res.data);
         } catch (err) { console.error("Araç çekme hatası:", err); }
     };
-    
+
     const fetchReservations = async (token) => {
         setLoadingReservations(true);
         try {
-            const res = await axios.get(`${API_URL}/reservations/`, { 
+            const res = await axios.get(`${API_URL}/reservations/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setReservations(res.data);
-        } catch (err) { 
-            console.error("Rezervasyon çekme hatası:", err); 
+        } catch (err) {
+            console.error("Rezervasyon çekme hatası:", err);
         } finally {
             setLoadingReservations(false);
+        }
+    };
+
+    const fetchReviews = async (token) => {
+        setLoadingReviews(true);
+        try {
+            const res = await axios.get(`${API_URL}/reviews/`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setReviews(res.data);
+        } catch (err) {
+            console.error("Yorum çekme hatası:", err);
+        } finally {
+            setLoadingReviews(false);
         }
     };
 
@@ -70,7 +84,7 @@ export default function AdminPage() {
     const handleAddCar = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
-        
+
         const formData = new FormData();
         formData.append("brand", brand);
         formData.append("model", model);
@@ -87,41 +101,52 @@ export default function AdminPage() {
 
         try {
             await axios.post(`${API_URL}/cars/`, formData, {
-                headers: { 
+                headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data"
                 }
             });
             alert("✅ Araç başarıyla eklendi!");
             setBrand(""); setModel(""); setYear(""); setPrice(""); setSelectedFiles([]);
-            fetchCars(); 
+            fetchCars();
         } catch (error) {
             alert("Araç ekleme hatası: " + (error.response?.data?.detail || error.message));
         }
     };
 
     const handleDeleteCar = async (id) => {
-        if(!confirm("Bu aracı silmek istediğine emin misin?")) return;
+        if (!confirm("Bu aracı silmek istediğine emin misin?")) return;
         const token = localStorage.getItem("token");
         try {
             await axios.delete(`${API_URL}/cars/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             fetchCars();
-        } catch(err) { alert("Silinemedi"); }
+        } catch (err) { alert("Silinemedi"); }
     };
 
     const handleDeleteReservation = async (id) => {
-        if(!confirm(`Rezervasyon #${id} silmek istediğine emin misin?`)) return;
+        if (!confirm(`Rezervasyon #${id} silmek istediğine emin misin?`)) return;
         const token = localStorage.getItem("token");
         try {
             await axios.delete(`${API_URL}/reservations/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             alert(`Rezervasyon #${id} başarıyla silindi.`);
-            fetchReservations(token); 
-        } catch(err) { 
-            alert("Rezervasyon silinemedi."); 
+            fetchReservations(token);
+        } catch (err) {
+            alert("Rezervasyon silinemedi.");
         }
     };
-    
-    // 👇 YENİ: Çıkış Yapma Fonksiyonu
+
+    const handleDeleteReview = async (id) => {
+        if (!confirm(`Yorum #${id} silmek istediğine emin misin?`)) return;
+        const token = localStorage.getItem("token");
+        try {
+            await axios.delete(`${API_URL}/reviews/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            alert(`Yorum #${id} başarıyla silindi.`);
+            fetchReviews(token);
+        } catch (err) {
+            alert("Yorum silinemedi.");
+        }
+    };
+
     const handleLogout = () => {
         localStorage.clear();
         alert("Admin çıkışı yapıldı.");
@@ -129,204 +154,199 @@ export default function AdminPage() {
     };
 
     if (typeof window !== 'undefined' && (localStorage.getItem("role") !== "admin" || !localStorage.getItem("token"))) {
-        return <Typography sx={{p:5, textAlign: 'center'}}>Yetkiniz yok...</Typography>;
+        return <Typography sx={{ p: 5, textAlign: 'center' }}>Yetkiniz yok...</Typography>;
     }
-
 
     return (
         <>
-        {/* 👇 YENİ: NAVBAR (AppBar) */}
-        <AppBar position="static" sx={{ bgcolor: '#1E2022' }}>
-            <Toolbar>
-                
-                {/* SOL: SADECE LOGO (Tıklaması Devre Dışı) */}
-                <Box 
-                    sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', cursor: 'default', gap: 1 }}
-                >
-                    <img 
-                      src="/logo.png" 
-                      alt="Rent A Car Logo"
-                      style={{ height: '45px', objectFit: 'contain' }}
-                    />
-                    <Typography variant="h6" color="white" fontWeight="bold" sx={{ ml: 1 }}>
-                        ADMİN PANELİ
-                    </Typography>
-                </Box>
-                
-                {/* SAĞ: ANA SAYFA VE ÇIKIŞ YAP BUTONLARI */}
-                <Stack direction="row" spacing={2} alignItems="center">
-                    
-                    {/* ANA SAYFAYA DÖN BUTONU */}
-                    <Button 
-                        color="inherit" 
-                        variant="outlined" 
-                        startIcon={<HomeIcon />}
-                        sx={{ borderRadius: '20px' }}
-                        onClick={() => router.push('/')}
-                    >
-                        Ana Sayfa
-                    </Button>
-                    
-                    {/* ÇIKIŞ YAP BUTONU */}
-                    <Button 
-                        variant="contained" 
-                        color="error" 
-                        onClick={handleLogout}
-                        sx={{ fontWeight: 'bold' }}
-                    >
-                        Çıkış Yap
-                    </Button>
-                </Stack>
+            {/* Ortak Navbar Component */}
+            <Navbar />
 
-            </Toolbar>
-        </AppBar>
-        {/* 👆 NAVBAR SONU */}
+            <Container sx={{ py: 4 }}>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#1E2022' }}>
+                    Admin Paneli
+                </Typography>
 
-        <Container sx={{ py: 4 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#1E2022' }}>
-                Admin Paneli
-            </Typography>
+                {/* BÖLÜM 1: ARAÇ EKLEME FORMU */}
+                <Paper elevation={3} sx={{ p: 4, mb: 5, backgroundColor: '#F0F5F9' }}>
+                    <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Yeni Araç Ekle</Typography>
+                    <form onSubmit={handleAddCar}>
+                        <Stack spacing={3}>
+                            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                                <TextField label="Marka" fullWidth required value={brand} onChange={(e) => setBrand(e.target.value)} sx={{ bgcolor: 'white' }} />
+                                <TextField label="Model" fullWidth required value={model} onChange={(e) => setModel(e.target.value)} sx={{ bgcolor: 'white' }} />
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                                <TextField label="Yıl" type="number" fullWidth required value={year} onChange={(e) => setYear(e.target.value)} sx={{ bgcolor: 'white' }} />
+                                <TextField label="Fiyat (TL)" type="number" fullWidth required value={price} onChange={(e) => setPrice(e.target.value)} sx={{ bgcolor: 'white' }} />
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+                                <TextField select label="Vites" fullWidth value={gear} onChange={(e) => setGear(e.target.value)} sx={{ bgcolor: 'white' }}>
+                                    <MenuItem value="Otomatik">Otomatik</MenuItem>
+                                    <MenuItem value="Manuel">Manuel</MenuItem>
+                                </TextField>
+                                <TextField select label="Yakıt" fullWidth value={fuel} onChange={(e) => setFuel(e.target.value)} sx={{ bgcolor: 'white' }}>
+                                    <MenuItem value="Benzin">Benzin</MenuItem>
+                                    <MenuItem value="Dizel">Dizel</MenuItem>
+                                    <MenuItem value="Elektrik">Elektrik</MenuItem>
+                                </TextField>
+                            </Box>
+                            <Button
+                                component="label"
+                                variant="outlined"
+                                startIcon={<CloudUploadIcon />}
+                                fullWidth
+                                sx={{ height: '56px', bgcolor: 'white', borderStyle: 'dashed', color: '#555' }}
+                            >
+                                {selectedFiles.length > 0 ? `${selectedFiles.length} Dosya Seçildi` : "📸 Fotoğrafları Seç"}
+                                <input type="file" multiple hidden onChange={handleFileChange} />
+                            </Button>
+                            <Button type="submit" variant="contained" color="success" size="large" fullWidth sx={{ height: '56px', fontWeight: 'bold' }}>
+                                + Sisteme Kaydet
+                            </Button>
+                        </Stack>
+                    </form>
+                </Paper>
 
-            {/* BÖLÜM 1: ARAÇ EKLEME FORMU */}
-            <Paper elevation={3} sx={{ p: 4, mb: 5, backgroundColor: '#F0F5F9' }}>
-                <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Yeni Araç Ekle</Typography>
-                <form onSubmit={handleAddCar}>
-                    
-                    <Stack spacing={3}>
-                        {/* 1. SATIR */}
-                        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                            <TextField label="Marka" fullWidth required value={brand} onChange={(e)=>setBrand(e.target.value)} sx={{bgcolor:'white'}}/>
-                            <TextField label="Model" fullWidth required value={model} onChange={(e)=>setModel(e.target.value)} sx={{bgcolor:'white'}}/>
-                        </Box>
+                <Divider sx={{ mb: 5 }} />
 
-                        {/* 2. SATIR */}
-                        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                            <TextField label="Yıl" type="number" fullWidth required value={year} onChange={(e)=>setYear(e.target.value)} sx={{bgcolor:'white'}}/>
-                            <TextField label="Fiyat (TL)" type="number" fullWidth required value={price} onChange={(e)=>setPrice(e.target.value)} sx={{bgcolor:'white'}}/>
-                        </Box>
+                {/* BÖLÜM 2: REZERVASYON YÖNETİMİ */}
+                <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Rezervasyon Yönetimi</Typography>
+                {loadingReservations ? (
+                    <Typography>Rezervasyonlar yükleniyor...</Typography>
+                ) : reservations.length === 0 ? (
+                    <Alert severity="info">Aktif rezervasyon bulunmamaktadır.</Alert>
+                ) : (
+                    <TableContainer component={Paper}>
+                        <Table size="small">
+                            <TableHead sx={{ backgroundColor: "#1E2022" }}>
+                                <TableRow>
+                                    <TableCell sx={{ color: "white" }}>ID</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Müşteri E-mail</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Araç</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Tarihler</TableCell>
+                                    <TableCell sx={{ color: "white" }}>İşlem</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {reservations.map((res) => (
+                                    <TableRow key={res.id}>
+                                        <TableCell>{res.id}</TableCell>
+                                        <TableCell>{res.user_email || `User #${res.user_id}`}</TableCell>
+                                        <TableCell>{res.car ? `${res.car.brand} ${res.car.model}` : `Car #${res.car_id}`}</TableCell>
+                                        <TableCell>{res.start_date} - {res.end_date}</TableCell>
+                                        <TableCell>
+                                            <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteReservation(res.id)}>
+                                                Sil
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
 
-                        {/* 3. SATIR */}
-                        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                            <TextField select label="Vites" fullWidth value={gear} onChange={(e)=>setGear(e.target.value)} sx={{bgcolor:'white'}}>
-                                <MenuItem value="Otomatik">Otomatik</MenuItem>
-                                <MenuItem value="Manuel">Manuel</MenuItem>
-                            </TextField>
-                            <TextField select label="Yakıt" fullWidth value={fuel} onChange={(e)=>setFuel(e.target.value)} sx={{bgcolor:'white'}}>
-                                <MenuItem value="Benzin">Benzin</MenuItem>
-                                <MenuItem value="Dizel">Dizel</MenuItem>
-                                <MenuItem value="Elektrik">Elektrik</MenuItem>
-                            </TextField>
-                        </Box>
+                <Divider sx={{ mt: 5, mb: 3 }} />
 
-                        {/* DOSYA YÜKLEME */}
-                        <Button
-                            component="label"
-                            variant="outlined"
-                            startIcon={<CloudUploadIcon />}
-                            fullWidth
-                            sx={{ height: '56px', bgcolor: 'white', borderStyle: 'dashed', color: '#555' }}
-                        >
-                            {selectedFiles.length > 0 ? `${selectedFiles.length} Dosya Seçildi` : "📸 Fotoğrafları Seç"}
-                            <input type="file" multiple hidden onChange={handleFileChange} />
-                        </Button>
+                {/* BÖLÜM 3: YORUM YÖNETİMİ */}
+                <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <StarIcon color="warning" /> Yorum Yönetimi
+                </Typography>
+                {loadingReviews ? (
+                    <Typography>Yorumlar yükleniyor...</Typography>
+                ) : reviews.length === 0 ? (
+                    <Alert severity="info">Henüz yorum bulunmamaktadır.</Alert>
+                ) : (
+                    <TableContainer component={Paper}>
+                        <Table size="small">
+                            <TableHead sx={{ backgroundColor: "#1E2022" }}>
+                                <TableRow>
+                                    <TableCell sx={{ color: "white" }}>ID</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Kullanıcı</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Araç</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Puan</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Yorum</TableCell>
+                                    <TableCell sx={{ color: "white" }}>Tarih</TableCell>
+                                    <TableCell sx={{ color: "white" }}>İşlem</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {reviews.map((review) => (
+                                    <TableRow key={review.id}>
+                                        <TableCell>{review.id}</TableCell>
+                                        <TableCell>
+                                            {review.user?.first_name && review.user?.last_name
+                                                ? `${review.user.first_name} ${review.user.last_name}`
+                                                : review.user?.email || `User #${review.user_id}`}
+                                        </TableCell>
+                                        <TableCell>
+                                            {review.car ? `${review.car.brand} ${review.car.model}` : `Car #${review.car_id}`}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Rating value={review.rating} readOnly size="small" />
+                                        </TableCell>
+                                        <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {review.comment}
+                                        </TableCell>
+                                        <TableCell>
+                                            {new Date(review.created_at).toLocaleDateString('tr-TR')}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteReview(review.id)}>
+                                                Sil
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
 
-                        {/* KAYDET */}
-                        <Button type="submit" variant="contained" color="success" size="large" fullWidth sx={{ height: '56px', fontWeight: 'bold' }}>
-                            + Sisteme Kaydet
-                        </Button>
+                <Divider sx={{ mt: 5, mb: 3 }} />
 
-                    </Stack>
-                </form>
-            </Paper>
-
-            <Divider sx={{ mb: 5 }}/>
-
-            {/* BÖLÜM 2: REZERVASYON YÖNETİMİ */}
-            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Rezervasyon Yönetimi</Typography>
-            
-            {loadingReservations ? (
-                <Typography>Rezervasyonlar yükleniyor...</Typography>
-            ) : reservations.length === 0 ? (
-                <Alert severity="info">Aktif rezervasyon bulunmamaktadır.</Alert>
-            ) : (
+                {/* BÖLÜM 4: MEVCUT ARAÇLAR */}
+                <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Mevcut Araçlar</Typography>
                 <TableContainer component={Paper}>
                     <Table size="small">
                         <TableHead sx={{ backgroundColor: "#1E2022" }}>
                             <TableRow>
-                                <TableCell sx={{ color: "white" }}>ID</TableCell>
-                                <TableCell sx={{ color: "white" }}>Müşteri E-mail</TableCell>
+                                <TableCell sx={{ color: "white" }}>Kapak</TableCell>
                                 <TableCell sx={{ color: "white" }}>Araç</TableCell>
-                                <TableCell sx={{ color: "white" }}>Tarihler</TableCell>
+                                <TableCell sx={{ color: "white" }}>Özellikler</TableCell>
+                                <TableCell sx={{ color: "white" }}>Fiyat</TableCell>
+                                <TableCell sx={{ color: "white" }}>Durum</TableCell>
                                 <TableCell sx={{ color: "white" }}>İşlem</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {reservations.map((res) => (
-                                <TableRow key={res.id}>
-                                    <TableCell>{res.id}</TableCell>
-                                    <TableCell>{res.user_email || `User #${res.user_id}`}</TableCell> 
-                                    <TableCell>{res.car ? `${res.car.brand} ${res.car.model}` : `Car #${res.car_id}`}</TableCell>
-                                    <TableCell>{res.start_date} - {res.end_date}</TableCell>
+                            {cars.map((car) => (
+                                <TableRow key={car.id}>
                                     <TableCell>
-                                        <Button 
-                                            size="small" 
-                                            color="error" 
-                                            startIcon={<DeleteIcon />}
-                                            onClick={() => handleDeleteReservation(res.id)}
-                                        >
-                                            Sil
-                                        </Button>
+                                        {car.image_url ? (
+                                            <img src={car.image_url} alt="car" style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                                        ) : "-"}
+                                    </TableCell>
+                                    <TableCell>{car.brand} {car.model}</TableCell>
+                                    <TableCell>
+                                        <Chip label={car.year} size="small" sx={{ mr: 0.5 }} />
+                                        <Chip label={car.gear_type} size="small" sx={{ mr: 0.5 }} />
+                                        <Chip label={car.fuel_type} size="small" />
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 'bold' }}>{car.price_per_day} TL</TableCell>
+                                    <TableCell>
+                                        {car.is_available ? <Chip label="Müsait" color="success" size="small" /> : <Chip label="Kirada" color="error" size="small" />}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button size="small" color="error" onClick={() => handleDeleteCar(car.id)}>Sil</Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
-            )}
-
-            <Divider sx={{ mt: 5, mb: 3 }}/>
-
-            {/* BÖLÜM 3: MEVCUT ARAÇLAR */}
-            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>Mevcut Araçlar</Typography>
-            <TableContainer component={Paper}>
-                <Table size="small">
-                    <TableHead sx={{ backgroundColor: "#1E2022" }}>
-                        <TableRow>
-                            <TableCell sx={{ color: "white" }}>Kapak</TableCell>
-                            <TableCell sx={{ color: "white" }}>Araç</TableCell>
-                            <TableCell sx={{ color: "white" }}>Özellikler</TableCell>
-                            <TableCell sx={{ color: "white" }}>Fiyat</TableCell>
-                            <TableCell sx={{ color: "white" }}>Durum</TableCell>
-                            <TableCell sx={{ color: "white" }}>İşlem</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {cars.map((car) => (
-                            <TableRow key={car.id}>
-                                <TableCell>
-                                    {car.image_url ? (
-                                        <img src={car.image_url} alt="car" style={{width:'60px', height:'40px', objectFit:'cover', borderRadius:'4px'}}/>
-                                    ) : "-"}
-                                </TableCell>
-                                <TableCell>{car.brand} {car.model}</TableCell>
-                                <TableCell>
-                                    <Chip label={car.year} size="small" sx={{mr:0.5}}/>
-                                    <Chip label={car.gear_type} size="small" sx={{mr:0.5}}/>
-                                    <Chip label={car.fuel_type} size="small"/>
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>{car.price_per_day} TL</TableCell>
-                                <TableCell>
-                                    {car.is_available ? <Chip label="Müsait" color="success" size="small"/> : <Chip label="Kirada" color="error" size="small"/>}
-                                </TableCell>
-                                <TableCell>
-                                    <Button size="small" color="error" onClick={() => handleDeleteCar(car.id)}>Sil</Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Container>
+            </Container>
         </>
     );
 }
