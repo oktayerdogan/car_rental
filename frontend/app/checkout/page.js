@@ -13,6 +13,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import axios from "axios";
 import Notification from "../components/Notification";
 import Navbar from "../components/Navbar";
+import CarLoading from "../components/CarLoading";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -125,12 +126,10 @@ export default function CheckoutPage() {
                 }
             });
 
-            // Başarı Bildirimi ve Yönlendirme
-            const message = response.data?.message || "Ödeme başarılı! Rezervasyonunuz onaylandı. 🎉";
-            setNotification({ open: true, message: message, severity: 'success' });
+            // Başarı - CarLoading göster ve yönlendir
             setTimeout(() => {
                 router.push('/reservations');
-            }, 1500);
+            }, 2500);
 
         } catch (error) {
             setLoading(false);
@@ -144,6 +143,11 @@ export default function CheckoutPage() {
             }
         }
     };
+
+    // Ödeme işlemi yükleme ekranı
+    if (loading) {
+        return <CarLoading message="Ödeme işleniyor..." subMessage="Rezervasyonunuz oluşturuluyor" />;
+    }
 
     if (!car || !carId) return <>
         <Navbar />

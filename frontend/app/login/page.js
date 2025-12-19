@@ -6,10 +6,12 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import Notification from "../components/Notification";
 import Navbar from "../components/Navbar";
+import CarLoading from "../components/CarLoading";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: '' });
   const router = useRouter();
 
@@ -20,6 +22,7 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setNotification({ open: false, message: '', severity: '' });
+    setLoading(true);
 
     try {
       const payload = new URLSearchParams({
@@ -37,18 +40,22 @@ export default function LoginPage() {
       localStorage.setItem("role", response.data.role);
       localStorage.setItem("user_id", response.data.user_id);
 
-      setNotification({ open: true, message: "Giriş başarılı! Yönlendiriliyorsunuz...", severity: "success" });
-
       setTimeout(() => {
         router.push(response.data.role === "admin" ? "/admin" : "/");
-      }, 500);
+      }, 2000);
 
     } catch (error) {
+      setLoading(false);
       console.error("Login Hatası:", error);
       const errorMessage = error.response?.data?.detail || "Kullanıcı adı veya şifre hatalı.";
       setNotification({ open: true, message: errorMessage, severity: "error" });
     }
   };
+
+  // Yükleme ekranı
+  if (loading) {
+    return <CarLoading message="Giriş yapılıyor..." subMessage="Lütfen bekleyiniz" />;
+  }
 
   return (
     <>
