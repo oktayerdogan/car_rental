@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AppBar, Toolbar, Box, Button, Stack, Badge, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Paper, Chip, IconButton } from "@mui/material";
+import { AppBar, Toolbar, Box, Button, Stack, Badge, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Paper, Chip, IconButton, InputAdornment, Snackbar, Alert } from "@mui/material";
 import { useRouter } from "next/navigation";
 import HomeIcon from '@mui/icons-material/Home';
 import EventNoteIcon from '@mui/icons-material/EventNote';
@@ -12,6 +12,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
 import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -28,6 +33,15 @@ export default function Navbar() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [replyDialog, setReplyDialog] = useState({ open: false, message: null });
     const [replyText, setReplyText] = useState("");
+
+    // Hesabım state'leri
+    const [accountOpen, setAccountOpen] = useState(false);
+    const [userInfo, setUserInfo] = useState(null);
+    const [editMode, setEditMode] = useState(false);
+    const [formData, setFormData] = useState({ email: "", password: "", confirmPassword: "" });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
     useEffect(() => {
         setIsClient(true);
@@ -90,6 +104,70 @@ export default function Navbar() {
             fetchMessages(token);
         } catch (err) {
             console.error("Mesaj silme hatası:", err);
+        }
+    };
+
+    // Kullanıcı bilgilerini getir
+    const fetchUserInfo = async () => {
+        const token = localStorage.getItem("token");
+        try {
+            const res = await axios.get(`${API_URL}/users/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUserInfo(res.data);
+            setFormData({
+                email: res.data.email,
+                password: "",
+                confirmPassword: ""
+            });
+        } catch (err) {
+            console.error("Kullanıcı bilgisi çekme hatası:", err);
+        }
+    };
+
+    // Hesabım dialogunu aç
+    const handleAccountOpen = () => {
+        fetchUserInfo();
+        setAccountOpen(true);
+        setEditMode(false);
+    };
+
+    // Profili güncelle
+    const handleUpdateProfile = async () => {
+        const token = localStorage.getItem("token");
+
+        // Şifre kontrolü
+        if (formData.password && formData.password !== formData.confirmPassword) {
+            setSnackbar({ open: true, message: "Şifreler eşleşmiyor!", severity: "error" });
+            return;
+        }
+
+        try {
+            const updateData = {};
+            if (formData.email !== userInfo.email) {
+                updateData.email = formData.email;
+            }
+            if (formData.password) {
+                updateData.password = formData.password;
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                setSnackbar({ open: true, message: "Değişiklik yapılmadı.", severity: "info" });
+                setEditMode(false);
+                return;
+            }
+
+            const res = await axios.put(`${API_URL}/users/profile`, updateData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setUserInfo(res.data);
+            setSnackbar({ open: true, message: "Profil başarıyla güncellendi!", severity: "success" });
+            setEditMode(false);
+            setFormData({ ...formData, password: "", confirmPassword: "" });
+        } catch (err) {
+            const errorMsg = err.response?.data?.detail || "Güncelleme başarısız!";
+            setSnackbar({ open: true, message: errorMsg, severity: "error" });
         }
     };
 
@@ -233,6 +311,31 @@ export default function Navbar() {
                                             Rezervasyonlarım
                                         </Button>
                                     )}
+
+                                    {/* Hesabım butonu */}
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<AccountCircleIcon />}
+                                        onClick={handleAccountOpen}
+                                        sx={{
+                                            background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)',
+                                            color: 'white',
+                                            fontWeight: 'bold',
+                                            borderRadius: '25px',
+                                            px: 3,
+                                            py: 1,
+                                            textTransform: 'none',
+                                            boxShadow: '0 4px 15px rgba(255, 140, 0, 0.4)',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                background: 'linear-gradient(135deg, #FFA500 0%, #FF8C00 100%)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 6px 20px rgba(255, 140, 0, 0.6)'
+                                            }
+                                        }}
+                                    >
+                                        Hesabım
+                                    </Button>
 
                                     {/* Çıkış Yap butonu */}
                                     <Button
@@ -508,6 +611,174 @@ export default function Navbar() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* HESABIM DIALOG */}
+            <Dialog
+                open={accountOpen}
+                onClose={() => {
+                    setAccountOpen(false);
+                    setEditMode(false);
+                }}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: 3 } }}
+            >
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)',
+                    color: 'white',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AccountCircleIcon />
+                        <Typography variant="h6" fontWeight="bold">Hesabım</Typography>
+                    </Box>
+                    <IconButton onClick={() => {
+                        setAccountOpen(false);
+                        setEditMode(false);
+                    }} sx={{ color: 'white' }}>
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 3, mt: 2 }}>
+                    {userInfo ? (
+                        <Stack spacing={3}>
+                            {/* Kullanıcı Bilgileri */}
+                            <Paper elevation={0} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    Ad Soyad
+                                </Typography>
+                                <Typography variant="h6" fontWeight="bold">
+                                    {userInfo.first_name} {userInfo.last_name || ''}
+                                </Typography>
+                            </Paper>
+
+                            <Paper elevation={0} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    Rol
+                                </Typography>
+                                <Chip
+                                    label={userInfo.role === 'admin' ? 'Admin' : 'Kullanıcı'}
+                                    color={userInfo.role === 'admin' ? 'error' : 'primary'}
+                                    size="small"
+                                />
+                            </Paper>
+
+                            {/* Email Düzenleme */}
+                            <Paper elevation={0} sx={{ p: 3, bgcolor: editMode ? '#fff3e0' : '#f8f9fa', borderRadius: 2 }}>
+                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    E-posta
+                                </Typography>
+                                {editMode ? (
+                                    <TextField
+                                        fullWidth
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        size="small"
+                                        sx={{ mt: 1 }}
+                                    />
+                                ) : (
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {userInfo.email}
+                                    </Typography>
+                                )}
+                            </Paper>
+
+                            {/* Şifre Değiştirme (sadece edit modunda) */}
+                            {editMode && (
+                                <>
+                                    <TextField
+                                        label="Yeni Şifre"
+                                        type={showPassword ? "text" : "password"}
+                                        fullWidth
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="Değiştirmek istemiyorsanız boş bırakın"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                    <TextField
+                                        label="Yeni Şifre (Tekrar)"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        fullWidth
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        placeholder="Yeni şifrenizi tekrar girin"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                                                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </>
+                            )}
+                        </Stack>
+                    ) : (
+                        <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                            Yükleniyor...
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 2, gap: 1 }}>
+                    {editMode ? (
+                        <>
+                            <Button
+                                onClick={() => {
+                                    setEditMode(false);
+                                    setFormData({ email: userInfo?.email || "", password: "", confirmPassword: "" });
+                                }}
+                            >
+                                İptal
+                            </Button>
+                            <Button
+                                variant="contained"
+                                startIcon={<SaveIcon />}
+                                onClick={handleUpdateProfile}
+                                sx={{ background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)' }}
+                            >
+                                Kaydet
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            variant="contained"
+                            startIcon={<EditIcon />}
+                            onClick={() => setEditMode(true)}
+                            sx={{ background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)' }}
+                        >
+                            Düzenle
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
+
+            {/* SNACKBAR */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </>
     );
 }

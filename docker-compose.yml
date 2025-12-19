@@ -12,6 +12,10 @@ services:
       - IYZICO_API_KEY=sandbox-dWwyWcQHp2nNUYhBxfD9dQzB3FyuCEBA
       - IYZICO_SECRET_KEY=sandbox-eLeyIz2gbPqe2nUkeXwPpJsslk3KPyI8
       - IYZICO_BASE_URL=sandbox-api.iyzipay.com
+      # Email ayarları (.env dosyasından okunur)
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   db:

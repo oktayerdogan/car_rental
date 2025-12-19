@@ -18,6 +18,7 @@ from ..services.payment import iyzico_service
 from ..services.reservation_service import ReservationService
 from ..decorators.logging_decorator import log_request
 from ..decorators.error_handler import handle_exceptions, handle_db_exceptions
+from ..services.email_service import send_reservation_confirmation
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
@@ -111,6 +112,20 @@ async def create_reservation_with_payment(
         db_reservation = reservation_crud.create_reservation(
             db, reservation_create, user_id=current_user.id
         )
+        
+        # Rezervasyon onay emaili gönder
+        try:
+            send_reservation_confirmation(
+                to_email=current_user.email,
+                user_name=current_user.first_name or current_user.email.split('@')[0],
+                car_name=car_name,
+                start_date=reservation.start_date,
+                end_date=reservation.end_date,
+                total_price=total_price
+            )
+        except Exception as e:
+            # Email gönderimi başarısız olsa bile rezervasyon devam eder
+            pass
         
         return schemas.PaymentResponse(
             success=True,
