@@ -2,7 +2,7 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import { Container, Card, CardMedia, CardContent, Typography, Button, Box, Grid, Chip, Tabs, Tab } from "@mui/material";
+import { Container, Card, CardMedia, CardContent, Typography, Button, Box, Grid, Chip } from "@mui/material";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Notification from "./components/Notification";
@@ -55,157 +55,222 @@ export default function HomePage() {
   const rentedCars = cars.filter(car => car.is_available === false).length;
 
   return (
-    <>
-      <Navbar />
+    <Box sx={{
+      position: 'relative',
+      minHeight: '100vh',
+      bgcolor: '#f5f5f5',
+      '&::before': {
+        content: '""',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'url(https://images.unsplash.com/photo-1489824904134-891ab64532f1?auto=format&fit=crop&w=1920&q=80)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        opacity: 0.25,
+        zIndex: 0
+      }
+    }}>
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <Navbar />
 
-      {/* ARAÇ LİSTESİ */}
-      <Container sx={{ py: 6 }}>
+        {/* ARAÇ LİSTESİ */}
+        <Container maxWidth="lg" sx={{ py: 5 }}>
 
-        {/* FİLTRE TABLARI */}
-        <Box sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          mb: 4,
-          gap: 2
-        }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-            Araç Filosu
-          </Typography>
-
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              '& .MuiTab-root': {
-                fontWeight: 'bold',
-                textTransform: 'none',
-                fontSize: '1rem',
-                minHeight: '48px',
-                borderRadius: '25px',
-                mx: 0.5,
-                transition: 'all 0.3s ease',
-              },
-              '& .Mui-selected': {
-                color: '#fff !important',
-              },
-              '& .MuiTabs-indicator': {
-                display: 'none',
-              }
-            }}
-          >
-            <Tab
-              icon={<DirectionsCarIcon />}
-              iconPosition="start"
-              label={`Tüm Araçlar (${totalCars})`}
-              sx={{
-                bgcolor: activeTab === 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f5f5f5',
-                background: activeTab === 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f5f5f5',
-                color: activeTab === 0 ? 'white' : '#666',
-                '&:hover': { bgcolor: activeTab === 0 ? '' : '#e0e0e0' }
-              }}
-            />
-            <Tab
-              icon={<CheckCircleIcon />}
-              iconPosition="start"
-              label={`Müsait (${availableCars})`}
-              sx={{
-                bgcolor: activeTab === 1 ? '' : '#f5f5f5',
-                background: activeTab === 1 ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : '#f5f5f5',
-                color: activeTab === 1 ? 'white' : '#666',
-                '&:hover': { bgcolor: activeTab === 1 ? '' : '#e0e0e0' }
-              }}
-            />
-            <Tab
-              icon={<BlockIcon />}
-              iconPosition="start"
-              label={`Kirada (${rentedCars})`}
-              sx={{
-                bgcolor: activeTab === 2 ? '' : '#f5f5f5',
-                background: activeTab === 2 ? 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)' : '#f5f5f5',
-                color: activeTab === 2 ? 'white' : '#666',
-                '&:hover': { bgcolor: activeTab === 2 ? '' : '#e0e0e0' }
-              }}
-            />
-          </Tabs>
-        </Box>
-
-        {/* ARAÇ KARTLARI */}
-        {filteredCars.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <DirectionsCarIcon sx={{ fontSize: 80, color: '#ccc', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Bu kategoride araç bulunamadı
+          {/* FİLTRE TABLARI */}
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between',
+            alignItems: { xs: 'flex-start', md: 'center' },
+            mb: 4,
+            gap: 2
+          }}>
+            <Typography variant="h4" sx={{ fontWeight: 600, color: '#333' }}>
+              Araç Filosu
             </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip
+                icon={<DirectionsCarIcon sx={{ fontSize: 18 }} />}
+                label={`Tüm Araçlar (${totalCars})`}
+                onClick={() => handleTabChange(null, 0)}
+                sx={{
+                  px: 1,
+                  py: 2.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  bgcolor: activeTab === 0 ? '#3d4f5f' : 'white',
+                  color: activeTab === 0 ? 'white' : '#666',
+                  border: activeTab === 0 ? 'none' : '1px solid #ddd',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: activeTab === 0 ? '#4a5f6f' : '#f9f9f9'
+                  },
+                  '& .MuiChip-icon': {
+                    color: activeTab === 0 ? 'white' : '#666'
+                  }
+                }}
+              />
+              <Chip
+                icon={<CheckCircleIcon sx={{ fontSize: 18 }} />}
+                label={`Müsait (${availableCars})`}
+                onClick={() => handleTabChange(null, 1)}
+                sx={{
+                  px: 1,
+                  py: 2.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  bgcolor: activeTab === 1 ? '#2e7d6a' : 'white',
+                  color: activeTab === 1 ? 'white' : '#666',
+                  border: activeTab === 1 ? 'none' : '1px solid #ddd',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: activeTab === 1 ? '#3d9a84' : '#f9f9f9'
+                  },
+                  '& .MuiChip-icon': {
+                    color: activeTab === 1 ? 'white' : '#666'
+                  }
+                }}
+              />
+              <Chip
+                icon={<BlockIcon sx={{ fontSize: 18 }} />}
+                label={`Kirada (${rentedCars})`}
+                onClick={() => handleTabChange(null, 2)}
+                sx={{
+                  px: 1,
+                  py: 2.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  bgcolor: activeTab === 2 ? '#c62828' : 'white',
+                  color: activeTab === 2 ? 'white' : '#666',
+                  border: activeTab === 2 ? 'none' : '1px solid #ddd',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: activeTab === 2 ? '#d32f2f' : '#f9f9f9'
+                  },
+                  '& .MuiChip-icon': {
+                    color: activeTab === 2 ? 'white' : '#666'
+                  }
+                }}
+              />
+            </Box>
           </Box>
-        ) : (
-          <Grid container spacing={4}>
-            {filteredCars.map((car) => (
-              <Grid key={car.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    cursor: 'pointer',
-                    transition: "0.3s",
-                    position: 'relative',
-                    "&:hover": { transform: "translateY(-5px)", boxShadow: "0 10px 20px rgba(0,0,0,0.15)" }
-                  }}
-                  onClick={() => router.push(`/cars/${car.id}`)}
-                >
-                  {/* DURUM ETİKETİ */}
-                  <Chip
-                    icon={car.is_available ? <CheckCircleIcon /> : <BlockIcon />}
-                    label={car.is_available ? "Müsait" : "Kirada"}
-                    color={car.is_available ? "success" : "error"}
-                    size="small"
+
+          {/* ARAÇ KARTLARI */}
+          {filteredCars.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <DirectionsCarIcon sx={{ fontSize: 80, color: '#ccc', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                Bu kategoride araç bulunamadı
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {filteredCars.map((car) => (
+                <Grid key={car.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card
                     sx={{
-                      position: 'absolute',
-                      top: 12,
-                      right: 12,
-                      zIndex: 1,
-                      fontWeight: 'bold',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      height: '100%',
+                      cursor: 'pointer',
+                      transition: "all 0.2s ease",
+                      position: 'relative',
+                      borderRadius: 3,
+                      bgcolor: 'white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
+                      }
                     }}
-                  />
+                    onClick={() => router.push(`/cars/${car.id}`)}
+                  >
+                    {/* DURUM ETİKETİ */}
+                    <Chip
+                      icon={car.is_available ? <CheckCircleIcon sx={{ fontSize: 14 }} /> : <BlockIcon sx={{ fontSize: 14 }} />}
+                      label={car.is_available ? "Müsait" : "Kirada"}
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        zIndex: 1,
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        bgcolor: car.is_available ? '#e8f5e9' : '#ffebee',
+                        color: car.is_available ? '#2e7d32' : '#c62828',
+                        border: 'none',
+                        '& .MuiChip-icon': {
+                          color: car.is_available ? '#2e7d32' : '#c62828'
+                        }
+                      }}
+                    />
 
-                  <CardMedia
-                    component="img"
-                    height="220"
-                    image={car.image_url ? car.image_url : "https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=500&q=60"}
-                    alt={car.brand}
-                  />
-                  <CardContent>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {car.brand} {car.model}
-                    </Typography>
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>
-                      {car.year} Model • {car.gear_type || "Otomatik"}
-                    </Typography>
-                    <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-                        {car.price_per_day} TL <Typography component="span" variant="body2" color="text.secondary">/ Gün</Typography>
+                    <CardMedia
+                      component="img"
+                      height="180"
+                      image={car.image_url ? car.image_url : "https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=500&q=60"}
+                      alt={car.brand}
+                      sx={{
+                        objectFit: 'cover',
+                        bgcolor: '#fafafa'
+                      }}
+                    />
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: '#333' }}>
+                        {car.brand} {car.model}
                       </Typography>
-                      <Button variant="outlined" size="small" color="secondary">
-                        İncele
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Container>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {car.year} Model • {car.gear_type || "Otomatik"}
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#333' }}>
+                          {car.price_per_day} TL <Typography component="span" variant="body2" color="text.secondary">/ Gün</Typography>
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            borderColor: '#ddd',
+                            color: '#666',
+                            textTransform: 'none',
+                            borderRadius: 2,
+                            px: 2,
+                            fontSize: '0.8rem',
+                            '&:hover': {
+                              borderColor: '#999',
+                              bgcolor: '#f5f5f5'
+                            }
+                          }}
+                        >
+                          İncele
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Container>
 
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        handleClose={handleCloseNotification}
-      />
+        <Notification
+          open={notification.open}
+          message={notification.message}
+          severity={notification.severity}
+          handleClose={handleCloseNotification}
+        />
 
-      <ChatButton />
-    </>
+        <ChatButton />
+      </Box>
+    </Box>
   );
 }

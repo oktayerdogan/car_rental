@@ -17,7 +17,7 @@ const theme = createTheme({
       contrastText: "#1E2022",
     },
     background: {
-      default: "#F0F5F9", // Sayfa Arka Planı (Çok açık gri)
+      default: "#f5f5f5", // Sayfa Arka Planı (Açık gri)
       paper: "#ffffff",   // Kart içleri beyaz
     },
     text: {

@@ -198,7 +198,7 @@ export default function Navbar() {
                     </Box>
 
                     {/* BUTONLAR */}
-                    <Stack direction="row" spacing={2} alignItems="center">
+                    <Stack direction="row" spacing={1.5} alignItems="center">
                         {isClient && (
                             isLoggedIn ? (
                                 <>
@@ -208,19 +208,19 @@ export default function Navbar() {
                                         startIcon={<HomeIcon />}
                                         onClick={() => router.push('/')}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            bgcolor: '#3d4f5f',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            borderRadius: '25px',
-                                            px: 3,
-                                            py: 1,
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                                            transition: 'all 0.3s ease',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)'
+                                                bgcolor: '#4a5f6f',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
@@ -238,23 +238,24 @@ export default function Navbar() {
                                                     fetchMessages(localStorage.getItem("token"));
                                                 }}
                                                 sx={{
-                                                    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-                                                    fontWeight: 'bold',
-                                                    borderRadius: '25px',
-                                                    px: 3,
-                                                    py: 1,
+                                                    bgcolor: '#2e7d6a',
+                                                    color: 'white',
+                                                    fontWeight: 500,
+                                                    borderRadius: '20px',
+                                                    px: 2.5,
+                                                    py: 0.8,
                                                     textTransform: 'none',
-                                                    boxShadow: '0 4px 15px rgba(56, 239, 125, 0.4)',
-                                                    transition: 'all 0.3s ease',
+                                                    fontSize: '0.875rem',
+                                                    boxShadow: 'none',
+                                                    transition: 'all 0.2s ease',
                                                     '&:hover': {
-                                                        background: 'linear-gradient(135deg, #38ef7d 0%, #11998e 100%)',
-                                                        transform: 'translateY(-2px)',
-                                                        boxShadow: '0 6px 20px rgba(56, 239, 125, 0.6)'
+                                                        bgcolor: '#3d9a84',
+                                                        boxShadow: 'none'
                                                     }
                                                 }}
                                             >
                                                 <Badge badgeContent={unreadCount} color="error" sx={{ mr: 1 }}>
-                                                    <MailIcon />
+                                                    <MailIcon sx={{ fontSize: 18 }} />
                                                 </Badge>
                                                 Mesajlar
                                             </Button>
@@ -262,21 +263,22 @@ export default function Navbar() {
                                             {/* Admin Paneli butonu */}
                                             <Button
                                                 variant="contained"
-                                                startIcon={<AdminPanelSettingsIcon />}
+                                                startIcon={<AdminPanelSettingsIcon sx={{ fontSize: 18 }} />}
                                                 onClick={() => router.push("/admin")}
                                                 sx={{
-                                                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                                                    fontWeight: 'bold',
-                                                    borderRadius: '25px',
-                                                    px: 3,
-                                                    py: 1,
+                                                    bgcolor: '#7b4b9e',
+                                                    color: 'white',
+                                                    fontWeight: 500,
+                                                    borderRadius: '20px',
+                                                    px: 2.5,
+                                                    py: 0.8,
                                                     textTransform: 'none',
-                                                    boxShadow: '0 4px 15px rgba(245, 87, 108, 0.4)',
-                                                    transition: 'all 0.3s ease',
+                                                    fontSize: '0.875rem',
+                                                    boxShadow: 'none',
+                                                    transition: 'all 0.2s ease',
                                                     '&:hover': {
-                                                        background: 'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)',
-                                                        transform: 'translateY(-2px)',
-                                                        boxShadow: '0 6px 20px rgba(245, 87, 108, 0.6)'
+                                                        bgcolor: '#9360b5',
+                                                        boxShadow: 'none'
                                                     }
                                                 }}
                                             >
@@ -289,22 +291,22 @@ export default function Navbar() {
                                     {!isAdmin && (
                                         <Button
                                             variant="contained"
-                                            startIcon={<EventNoteIcon />}
+                                            startIcon={<EventNoteIcon sx={{ fontSize: 18 }} />}
                                             onClick={() => router.push("/reservations")}
                                             sx={{
-                                                background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                                                bgcolor: '#2e7d6a',
                                                 color: 'white',
-                                                fontWeight: 'bold',
-                                                borderRadius: '25px',
-                                                px: 3,
-                                                py: 1,
+                                                fontWeight: 500,
+                                                borderRadius: '20px',
+                                                px: 2.5,
+                                                py: 0.8,
                                                 textTransform: 'none',
-                                                boxShadow: '0 4px 15px rgba(56, 239, 125, 0.4)',
-                                                transition: 'all 0.3s ease',
+                                                fontSize: '0.875rem',
+                                                boxShadow: 'none',
+                                                transition: 'all 0.2s ease',
                                                 '&:hover': {
-                                                    background: 'linear-gradient(135deg, #38ef7d 0%, #11998e 100%)',
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: '0 6px 20px rgba(56, 239, 125, 0.6)'
+                                                    bgcolor: '#3d9a84',
+                                                    boxShadow: 'none'
                                                 }
                                             }}
                                         >
@@ -315,22 +317,22 @@ export default function Navbar() {
                                     {/* Hesabım butonu */}
                                     <Button
                                         variant="contained"
-                                        startIcon={<AccountCircleIcon />}
+                                        startIcon={<AccountCircleIcon sx={{ fontSize: 18 }} />}
                                         onClick={handleAccountOpen}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)',
+                                            bgcolor: '#f5a623',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            borderRadius: '25px',
-                                            px: 3,
-                                            py: 1,
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(255, 140, 0, 0.4)',
-                                            transition: 'all 0.3s ease',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #FFA500 0%, #FF8C00 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(255, 140, 0, 0.6)'
+                                                bgcolor: '#e09515',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
@@ -340,22 +342,22 @@ export default function Navbar() {
                                     {/* Çıkış Yap butonu */}
                                     <Button
                                         variant="contained"
-                                        startIcon={<LogoutIcon />}
+                                        startIcon={<LogoutIcon sx={{ fontSize: 18 }} />}
                                         onClick={handleLogout}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+                                            bgcolor: '#e74c3c',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            borderRadius: '25px',
-                                            px: 3,
-                                            py: 1,
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(235, 51, 73, 0.4)',
-                                            transition: 'all 0.3s ease',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #f45c43 0%, #eb3349 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(235, 51, 73, 0.6)'
+                                                bgcolor: '#c0392b',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
@@ -367,22 +369,22 @@ export default function Navbar() {
                                     {/* Ana Sayfa butonu */}
                                     <Button
                                         variant="contained"
-                                        startIcon={<HomeIcon />}
+                                        startIcon={<HomeIcon sx={{ fontSize: 18 }} />}
                                         onClick={() => router.push('/')}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            bgcolor: '#3d4f5f',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            borderRadius: '25px',
-                                            px: 3,
-                                            py: 1,
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                                            transition: 'all 0.3s ease',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)'
+                                                bgcolor: '#4a5f6f',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
@@ -393,18 +395,19 @@ export default function Navbar() {
                                         variant="contained"
                                         onClick={() => router.push("/register")}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                                            bgcolor: '#27ae60',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            padding: '8px 24px',
-                                            borderRadius: '25px',
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(56, 239, 125, 0.4)',
-                                            transition: '0.3s',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #38ef7d 0%, #11998e 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(56, 239, 125, 0.6)'
+                                                bgcolor: '#219a52',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
@@ -414,18 +417,19 @@ export default function Navbar() {
                                         variant="contained"
                                         onClick={() => router.push("/login")}
                                         sx={{
-                                            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                            bgcolor: '#3498db',
                                             color: 'white',
-                                            fontWeight: 'bold',
-                                            padding: '8px 24px',
-                                            borderRadius: '25px',
+                                            fontWeight: 500,
+                                            borderRadius: '20px',
+                                            px: 2.5,
+                                            py: 0.8,
                                             textTransform: 'none',
-                                            boxShadow: '0 4px 15px rgba(245, 87, 108, 0.4)',
-                                            transition: '0.3s',
+                                            fontSize: '0.875rem',
+                                            boxShadow: 'none',
+                                            transition: 'all 0.2s ease',
                                             '&:hover': {
-                                                background: 'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 6px 20px rgba(245, 87, 108, 0.6)'
+                                                bgcolor: '#2980b9',
+                                                boxShadow: 'none'
                                             }
                                         }}
                                     >
