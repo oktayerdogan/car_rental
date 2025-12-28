@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, MenuItem, Chip, Box, Stack, Divider, Alert, Rating } from "@mui/material";
+import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, MenuItem, Chip, Box, Stack, Divider, Alert, Rating, IconButton } from "@mui/material";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import StarIcon from '@mui/icons-material/Star';
+import EditIcon from '@mui/icons-material/Edit';
 import Navbar from "../components/Navbar";
+import PriceEditDialog from "../components/PriceEditDialog";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -27,6 +29,10 @@ export default function AdminPage() {
     const [gear, setGear] = useState("Otomatik");
     const [fuel, setFuel] = useState("Benzin");
     const [selectedFiles, setSelectedFiles] = useState([]);
+
+    // --- FİYAT GÜNCELLEME STATE ---
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [selectedCar, setSelectedCar] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -151,6 +157,22 @@ export default function AdminPage() {
         localStorage.clear();
         alert("Admin çıkışı yapıldı.");
         router.push("/");
+    };
+
+    // --- FİYAT GÜNCELLEME FONKSİYONLARI ---
+    const handleOpenEditDialog = (car) => {
+        setSelectedCar(car);
+        setEditDialogOpen(true);
+    };
+
+    const handleCloseEditDialog = () => {
+        setEditDialogOpen(false);
+        setSelectedCar(null);
+    };
+
+    const handlePriceUpdateSuccess = () => {
+        handleCloseEditDialog();
+        fetchCars();
     };
 
     if (typeof window !== 'undefined' && (localStorage.getItem("role") !== "admin" || !localStorage.getItem("token"))) {
@@ -339,13 +361,26 @@ export default function AdminPage() {
                                         {car.is_available ? <Chip label="Müsait" color="success" size="small" /> : <Chip label="Kirada" color="error" size="small" />}
                                     </TableCell>
                                     <TableCell>
-                                        <Button size="small" color="error" onClick={() => handleDeleteCar(car.id)}>Sil</Button>
+                                        <Box sx={{ display: 'flex', gap: 1 }}>
+                                            <IconButton size="small" color="primary" onClick={() => handleOpenEditDialog(car)} title="Fiyat Güncelle">
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                            <Button size="small" color="error" onClick={() => handleDeleteCar(car.id)}>Sil</Button>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                {/* FİYAT GÜNCELLEME DİALOGU */}
+                <PriceEditDialog
+                    open={editDialogOpen}
+                    car={selectedCar}
+                    onClose={handleCloseEditDialog}
+                    onSuccess={handlePriceUpdateSuccess}
+                />
             </Container>
         </>
     );

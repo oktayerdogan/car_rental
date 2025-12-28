@@ -57,6 +57,16 @@ class CarBase(BaseModel):
 class CarCreate(CarBase):
     pass
 
+class CarUpdate(BaseModel):
+    """Araç güncelleme şeması (Admin için)"""
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    price_per_day: Optional[float] = None
+    gear_type: Optional[str] = None
+    fuel_type: Optional[str] = None
+    is_available: Optional[bool] = None
+
 class Car(CarBase):
     id: int
     is_available: bool

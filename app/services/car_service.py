@@ -151,6 +151,48 @@ class CarService:
         logger.info(f"✅ Car {car_id} availability updated")
         return car
     
+    def update_car(self, car_id: int, brand: str = None, model: str = None,
+                   year: int = None, price_per_day: float = None,
+                   gear_type: str = None, fuel_type: str = None,
+                   is_available: bool = None) -> Optional[Car]:
+        """
+        Araç bilgilerini günceller (Admin için).
+        
+        Args:
+            car_id: Araç ID'si
+            Diğer argümanlar: Güncellenecek alanlar (None olanlar güncellenmez)
+            
+        Returns:
+            Optional[Car]: Güncellenen araç veya None
+        """
+        logger.info(f"🔄 Updating car with ID: {car_id}")
+        
+        car = self.get_car_by_id(car_id)
+        if not car:
+            return None
+        
+        # Sadece gönderilen alanları güncelle
+        if brand is not None:
+            car.brand = brand
+        if model is not None:
+            car.model = model
+        if year is not None:
+            car.year = year
+        if price_per_day is not None:
+            car.price_per_day = price_per_day
+        if gear_type is not None:
+            car.gear_type = gear_type
+        if fuel_type is not None:
+            car.fuel_type = fuel_type
+        if is_available is not None:
+            car.is_available = is_available
+        
+        self.db.commit()
+        self.db.refresh(car)
+        
+        logger.info(f"✅ Car {car_id} updated successfully")
+        return car
+    
     def delete_car(self, car_id: int) -> bool:
         """
         Araç siler.

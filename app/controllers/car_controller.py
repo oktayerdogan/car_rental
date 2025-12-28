@@ -133,3 +133,37 @@ async def delete_car(
         raise HTTPException(status_code=404, detail="Araç bulunamadı")
     
     return None
+
+
+@router.put("/{car_id}", response_model=schemas.Car)
+@handle_db_exceptions
+@log_request
+async def update_car(
+    car_id: int,
+    car_update: schemas.CarUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """
+    Araç bilgilerini günceller (Admin Only)
+    
+    Sadece gönderilen alanlar güncellenir.
+    Decorator'lar: @handle_db_exceptions, @log_request
+    """
+    car_service = CarService(db)
+    
+    updated_car = car_service.update_car(
+        car_id=car_id,
+        brand=car_update.brand,
+        model=car_update.model,
+        year=car_update.year,
+        price_per_day=car_update.price_per_day,
+        gear_type=car_update.gear_type,
+        fuel_type=car_update.fuel_type,
+        is_available=car_update.is_available
+    )
+    
+    if not updated_car:
+        raise HTTPException(status_code=404, detail="Araç bulunamadı")
+    
+    return updated_car
